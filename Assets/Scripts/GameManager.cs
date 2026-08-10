@@ -69,6 +69,8 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     TextMeshProUGUI comboText;
     [SerializeField]
+    TextMeshProUGUI actionMessageText;
+    [SerializeField]
     GameObject playAgainButton;
 
     void Start()
@@ -193,11 +195,200 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
+    // Kill Message Pools
+    private readonly string[] standardMessages = new string[] { "SMASH!", "KILL!", "SLAY!", "CRUSH!", "WHACK!" };
+    private readonly string[] goldenMessages = new string[] { "THE KING IS DEAD!", "ET TU, BRUTE?", "GOLDEN DOWN!", "ROYALTY SLAIN!" };
+    private readonly string[] bombMessages = new string[] { "OH NOOO!", "BOOOM!", "BOMBA!", "KABOOM!" };
+    private readonly string[] toughHitMessages = new string[] { "AGAIN!", "AGAIN!", "KEEP HITTING!" };
+    private readonly string[] toughSlainMessages = new string[] { "FINALLY!?", "FALLEN AT LAST!", "DEFEATED!" };
+
+    // Escape / Despawn Message Pools (When NOT clicked)
+    private readonly string[] bombDefusedMessages = new string[] { "BOMB DEFUSED", "SAFE FOR NOW!", "DISARMED!", "WHEW, CLOSE ONE!" };
+    private readonly string[] nukeEscapedMessages = new string[] { "WE LIVE TO SEE ANOTHER DAY", "EVACUATED IN TIME!", "MISSILE DISARMED!", "CRISIS AVERTED!" };
+    private readonly string[] regularEscapedMessages = new string[] { "GOT AWAY!", "MISSED IT!", "TOO SLOW!", "ESCAPED!", "SNEAKY MOLE!" };
+    private readonly string[] toughEscapedMessages = new string[] { "UNDEFEATED", "UNSTOPPABLE!", "STILL STANDING!", "TOO TOUGH!" };
+    private readonly string[] goldenEscapedMessages = new string[] { "THE KING RISES", "ROYAL ESCAPE!", "SLIPPED AWAY!", "TOO FAST!" };
+
+    // Kill Colors
+    private readonly Color standardColor = new Color(0.2f, 0.85f, 1.0f);
+    private readonly Color goldenColor = new Color(1.0f, 0.85f, 0.0f);
+    private readonly Color bombColor = new Color(1.0f, 0.25f, 0.2f);
+    private readonly Color toughHitColor = new Color(1.0f, 0.55f, 0.0f);
+    private readonly Color toughSlainColor = new Color(0.9f, 0.25f, 1.0f);
+    private readonly Color nukeColor = new Color(0.2f, 1.0f, 0.35f);
+
+    // Escape Colors (Distinct warning & relief tones)
+    private readonly Color bombDefusedColor = new Color(0.2f, 0.9f, 0.6f);   // Mint / Relief Green
+    private readonly Color nukeEscapedColor = new Color(0.1f, 0.8f, 0.9f);   // Teal / Cyan Relief
+    private readonly Color regularEscapedColor = new Color(1.0f, 0.4f, 0.4f); // Coral Warning
+    private readonly Color toughEscapedColor = new Color(0.85f, 0.15f, 0.25f); // Crimson Warning
+    private readonly Color goldenEscapedColor = new Color(0.85f, 0.65f, 0.15f); // Bronze / Amber Warning
+
+    private Coroutine actionMessageCoroutine;
+
     private void SetHudActive(bool active)
     {
         if (scoreText != null) scoreText.gameObject.SetActive(active);
         if (livesText != null) livesText.gameObject.SetActive(active);
         if (comboText != null) comboText.gameObject.SetActive(active);
+        if (actionMessageText != null && !active) actionMessageText.gameObject.SetActive(false);
+    }
+
+    public void ShowActionMessage(string text, Color color, float duration = 1.5f)
+    {
+        if (actionMessageText == null) return;
+        if (actionMessageCoroutine != null)
+        {
+            StopCoroutine(actionMessageCoroutine);
+        }
+        actionMessageCoroutine = StartCoroutine(ActionMessageRoutine(text, color, duration));
+    }
+
+    private IEnumerator ActionMessageRoutine(string text, Color color, float duration)
+    {
+        actionMessageText.gameObject.SetActive(true);
+        actionMessageText.text = text;
+        actionMessageText.color = color;
+
+        Transform textTransform = actionMessageText.transform;
+        Vector3 originalScale = Vector3.one;
+        Vector3 punchScale = originalScale * 1.3f;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            if (elapsed < 0.25f)
+            {
+                float scaleT = Mathf.Sin((elapsed / 0.25f) * Mathf.PI);
+                textTransform.localScale = Vector3.Lerp(originalScale, punchScale, scaleT);
+            }
+            else
+            {
+                textTransform.localScale = originalScale;
+            }
+
+            if (t > 0.6f)
+            {
+                float alphaT = (t - 0.6f) / 0.4f;
+                Color c = color;
+                c.a = Mathf.Lerp(1f, 0f, alphaT);
+                actionMessageText.color = c;
+            }
+
+            yield return null;
+        }
+
+        actionMessageText.gameObject.SetActive(false);
+        textTransform.localScale = originalScale;
+    }
+
+    public void ShowStandardSlainMessage()
+    {
+        string msg = standardMessages[Random.Range(0, standardMessages.Length)];
+        ShowActionMessage(msg, standardColor, 1.2f);
+    }
+
+    public void ShowGoldenSlainMessage()
+    {
+        string msg = goldenMessages[Random.Range(0, goldenMessages.Length)];
+        ShowActionMessage(msg, goldenColor, 1.8f);
+    }
+
+    public void ShowBombExplodedMessage()
+    {
+        string msg = bombMessages[Random.Range(0, bombMessages.Length)];
+        ShowActionMessage(msg, bombColor, 1.5f);
+    }
+
+    public void ShowToughHitMessage()
+    {
+        string msg = toughHitMessages[Random.Range(0, toughHitMessages.Length)];
+        ShowActionMessage(msg, toughHitColor, 1.0f);
+    }
+
+    public void ShowToughSlainMessage()
+    {
+        string msg = toughSlainMessages[Random.Range(0, toughSlainMessages.Length)];
+        ShowActionMessage(msg, toughSlainColor, 1.6f);
+    }
+
+    public void ShowBombDefusedMessage()
+    {
+        string msg = bombDefusedMessages[Random.Range(0, bombDefusedMessages.Length)];
+        ShowActionMessage(msg, bombDefusedColor, 1.5f);
+    }
+
+    public void ShowNukeEscapedMessage()
+    {
+        string msg = nukeEscapedMessages[Random.Range(0, nukeEscapedMessages.Length)];
+        ShowActionMessage(msg, nukeEscapedColor, 1.8f);
+    }
+
+    public void ShowRegularEscapedMessage()
+    {
+        string msg = regularEscapedMessages[Random.Range(0, regularEscapedMessages.Length)];
+        ShowActionMessage(msg, regularEscapedColor, 1.2f);
+    }
+
+    public void ShowToughEscapedMessage()
+    {
+        string msg = toughEscapedMessages[Random.Range(0, toughEscapedMessages.Length)];
+        ShowActionMessage(msg, toughEscapedColor, 1.5f);
+    }
+
+    public void ShowGoldenEscapedMessage()
+    {
+        string msg = goldenEscapedMessages[Random.Range(0, goldenEscapedMessages.Length)];
+        ShowActionMessage(msg, goldenEscapedColor, 1.6f);
+    }
+
+    public void ShowNukeFalloutMessage(float duration = 3.0f)
+    {
+        if (actionMessageCoroutine != null)
+        {
+            StopCoroutine(actionMessageCoroutine);
+        }
+        actionMessageCoroutine = StartCoroutine(FalloutCountdownRoutine(duration));
+    }
+
+    private IEnumerator FalloutCountdownRoutine(float duration)
+    {
+        if (actionMessageText == null) yield break;
+
+        actionMessageText.gameObject.SetActive(true);
+        actionMessageText.color = nukeColor;
+
+        Transform textTransform = actionMessageText.transform;
+        Vector3 originalScale = Vector3.one;
+        Vector3 punchScale = originalScale * 1.35f;
+
+        float remaining = duration;
+        float elapsed = 0f;
+
+        while (remaining > 0f)
+        {
+            actionMessageText.text = $"<b>FALLOUT! ({remaining:F1}s)</b>";
+
+            if (elapsed < 0.25f)
+            {
+                float scaleT = Mathf.Sin((elapsed / 0.25f) * Mathf.PI);
+                textTransform.localScale = Vector3.Lerp(originalScale, punchScale, scaleT);
+            }
+            else
+            {
+                textTransform.localScale = originalScale;
+            }
+
+            yield return null;
+            remaining -= Time.deltaTime;
+            elapsed += Time.deltaTime;
+        }
+
+        actionMessageText.gameObject.SetActive(false);
+        textTransform.localScale = originalScale;
     }
 
     IEnumerator StartCountdown()
@@ -230,6 +421,19 @@ public class GameManager : MonoBehaviour
         comboMultiplier++;
         UpdateUI();
         TriggerScoreGainFlash();
+
+        if (enemy is GoldenEnemyBehaviour)
+        {
+            ShowGoldenSlainMessage();
+        }
+        else if (enemy is ToughEnemyBehaviour)
+        {
+            ShowToughSlainMessage();
+        }
+        else if (enemy is StandardEnemyBehaviour)
+        {
+            ShowStandardSlainMessage();
+        }
     }
 
     public void AddScore(int amount)
@@ -251,6 +455,7 @@ public class GameManager : MonoBehaviour
         }
         
         spawnTimer = -3f;
+        ShowNukeFalloutMessage(3.0f);
     }
 
     private Coroutine cameraShakeCoroutine;
@@ -373,6 +578,7 @@ public class GameManager : MonoBehaviour
         comboMultiplier = 1;
         UpdateUI();
         TriggerHealthLostFlash();
+        ShowBombExplodedMessage();
 
         if (currentHealth <= 0)
         {
@@ -383,6 +589,27 @@ public class GameManager : MonoBehaviour
     public void OnEnemyEscaped(IEnemyBehaviour enemy)
     {
         if (isGameFinished) return;
+
+        if (enemy is BombEnemyBehaviour)
+        {
+            ShowBombDefusedMessage();
+        }
+        else if (enemy is NukeEnemyBehaviour)
+        {
+            ShowNukeEscapedMessage();
+        }
+        else if (enemy is GoldenEnemyBehaviour)
+        {
+            ShowGoldenEscapedMessage();
+        }
+        else if (enemy is ToughEnemyBehaviour)
+        {
+            ShowToughEscapedMessage();
+        }
+        else if (enemy is StandardEnemyBehaviour)
+        {
+            ShowRegularEscapedMessage();
+        }
 
         if (enemy.PenalizeOnEscape)
         {

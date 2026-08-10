@@ -90,6 +90,7 @@ public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
                 {
                     riseAnim.LowerToStage(hiddenFraction);
                 }
+                GameManager.Instance.ShowToughHitMessage();
             }
         }
     }
