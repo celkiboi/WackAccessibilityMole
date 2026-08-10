@@ -52,6 +52,14 @@ public class Ground : MonoBehaviour
         NumberOfCols = totalCols;
         NumberOfRows = totalRows;
     }
-    
 
+    public void SpawnEnemy(GameObject enemy)
+    {
+        int row = Random.Range(0, NumberOfRows);
+        int col = Random.Range(0, NumberOfCols);
+        int tileIndex = row * NumberOfCols + col;
+
+        GameObject enemyObject = Instantiate(enemy, groundTiles[tileIndex].transform);
+        enemyObject.transform.Translate(new(0, 0, -0.001f));
+    }
 }
