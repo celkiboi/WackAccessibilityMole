@@ -225,6 +225,37 @@ public class GameManager : MonoBehaviour
         spawnTimer = -3f;
     }
 
+    private Coroutine cameraShakeCoroutine;
+
+    public void TriggerCameraShake(float duration = 0.2f, float magnitude = 0.15f)
+    {
+        if (Camera.main == null) return;
+        if (cameraShakeCoroutine != null)
+        {
+            StopCoroutine(cameraShakeCoroutine);
+        }
+        cameraShakeCoroutine = StartCoroutine(CameraShakeRoutine(duration, magnitude));
+    }
+
+    private IEnumerator CameraShakeRoutine(float duration, float magnitude)
+    {
+        Vector3 originalPos = Camera.main.transform.localPosition;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            float offsetX = Random.Range(-1f, 1f) * magnitude;
+            float offsetY = Random.Range(-1f, 1f) * magnitude;
+
+            Camera.main.transform.localPosition = originalPos + new Vector3(offsetX, offsetY, 0);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        Camera.main.transform.localPosition = originalPos;
+    }
+
     public void HitBomb()
     {
         if (isGameFinished) return;

@@ -31,8 +31,16 @@ public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             StopCoroutine(lifetimeCoroutine);
         }
 
-        // Tough enemies stay on screen 50% longer
-        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime * 1.5f));
+        float actualLifetime = lifetime * 1.5f;
+
+        MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+        if (riseAnim == null)
+        {
+            riseAnim = gameObject.AddComponent<MoleRiseAnimation>();
+        }
+        riseAnim.Initialize(actualLifetime);
+
+        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(actualLifetime));
     }
 
     private IEnumerator LifetimeRoutine(float lifetime)
@@ -53,8 +61,7 @@ public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
         {
             currentClicks--;
             
-            // Visual feedback
-            transform.localScale *= 0.9f;
+            MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
 
             if (currentClicks <= 0)
             {
@@ -65,7 +72,24 @@ public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
                 }
 
                 GameManager.Instance.KillEnemy(this);
-                Destroy(gameObject);
+
+                if (riseAnim != null)
+                {
+                    riseAnim.TriggerFastRetract(0.15f, () => Destroy(gameObject));
+                }
+                else
+                {
+                    Destroy(gameObject);
+                }
+            }
+            else
+            {
+                // Intermediate hit: lower in stages
+                float hiddenFraction = (float)(clicksRequired - currentClicks) / clicksRequired;
+                if (riseAnim != null)
+                {
+                    riseAnim.LowerToStage(hiddenFraction);
+                }
             }
         }
     }

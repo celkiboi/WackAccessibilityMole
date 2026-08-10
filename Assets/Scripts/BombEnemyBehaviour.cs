@@ -5,10 +5,10 @@ using UnityEngine;
 public class BombEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    int scoreValue = 0; // Bombs shouldn't give score if clicked!
+    int scoreValue = 0;
 
     public int ScoreValue => scoreValue;
-    public bool PenalizeOnEscape => false; // Safe to let it despawn!
+    public bool PenalizeOnEscape => false; 
     public GameObject GameObject => this.gameObject;
 
     public event Action<IEnemyBehaviour> OnEnemyEscaped;
@@ -23,6 +23,13 @@ public class BombEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             StopCoroutine(lifetimeCoroutine);
         }
 
+        MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+        if (riseAnim == null)
+        {
+            riseAnim = gameObject.AddComponent<MoleRiseAnimation>();
+        }
+        riseAnim.Initialize(lifetime);
+
         lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime));
     }
 
@@ -33,7 +40,7 @@ public class BombEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
         if (!isHandled && !GameManager.isGameFinished)
         {
             isHandled = true;
-            OnEnemyEscaped?.Invoke(this); // Wont penalize because PenalizeOnEscape is false
+            OnEnemyEscaped?.Invoke(this);
             Destroy(gameObject);
         }
     }
@@ -48,9 +55,18 @@ public class BombEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
                 StopCoroutine(lifetimeCoroutine);
             }
 
-            // Clicked a bomb! Penalize!
             GameManager.Instance.HitBomb();
-            Destroy(gameObject);
+            GameManager.Instance.TriggerCameraShake(0.2f, 0.15f);
+
+            MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+            if (riseAnim != null)
+            {
+                riseAnim.TriggerExplosion(Color.red, 1.8f, 0.2f, () => Destroy(gameObject));
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

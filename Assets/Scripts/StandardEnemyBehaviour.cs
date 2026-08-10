@@ -23,6 +23,13 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             StopCoroutine(lifetimeCoroutine);
         }
 
+        MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+        if (riseAnim == null)
+        {
+            riseAnim = gameObject.AddComponent<MoleRiseAnimation>();
+        }
+        riseAnim.Initialize(lifetime);
+
         lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime));
     }
 
@@ -49,7 +56,16 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             }
 
             GameManager.Instance.KillEnemy(this);
-            Destroy(gameObject);
+
+            MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+            if (riseAnim != null)
+            {
+                riseAnim.TriggerFastRetract(0.15f, () => Destroy(gameObject));
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 public class NukeEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    int scoreValue = 200; // Base score for triggering it
+    int scoreValue = 200;
 
     public int ScoreValue => scoreValue;
     public bool PenalizeOnEscape => true;
@@ -22,6 +22,13 @@ public class NukeEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
         {
             StopCoroutine(lifetimeCoroutine);
         }
+
+        MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+        if (riseAnim == null)
+        {
+            riseAnim = gameObject.AddComponent<MoleRiseAnimation>();
+        }
+        riseAnim.Initialize(lifetime);
 
         lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime));
     }
@@ -48,10 +55,19 @@ public class NukeEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
                 StopCoroutine(lifetimeCoroutine);
             }
 
-            // A nuke gives base score, plus triggers the board clear
             GameManager.Instance.KillEnemy(this);
             GameManager.Instance.TriggerNuke();
-            Destroy(gameObject);
+            GameManager.Instance.TriggerCameraShake(0.35f, 0.25f);
+
+            MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+            if (riseAnim != null)
+            {
+                riseAnim.TriggerExplosion(Color.yellow, 2.2f, 0.25f, () => Destroy(gameObject));
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

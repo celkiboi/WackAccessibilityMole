@@ -52,6 +52,24 @@ public class Ground : MonoBehaviour
             groundTiles[i].transform.position = new Vector3(width, height, 0);
             groundTiles[i].transform.localScale = new Vector3(tileWidth, tileHeight, 1);
             
+            int rowSortingOrder = row * 10;
+
+            SpriteRenderer tileSr = groundTiles[i].GetComponent<SpriteRenderer>();
+            if (tileSr != null)
+            {
+                tileSr.sortingOrder = rowSortingOrder;
+
+                SpriteMask mask = groundTiles[i].GetComponent<SpriteMask>();
+                if (mask == null)
+                {
+                    mask = groundTiles[i].AddComponent<SpriteMask>();
+                }
+                mask.sprite = tileSr.sprite;
+                mask.isCustomRangeActive = true;
+                mask.backSortingOrder = rowSortingOrder;
+                mask.frontSortingOrder = rowSortingOrder + 5;
+            }
+
             lastSpawnTimes[i] = -100f;
         }
 
@@ -104,6 +122,16 @@ public class Ground : MonoBehaviour
         lastSpawnTimes[chosenTileIndex] = Time.time;
         GameObject enemyObject = Instantiate(enemy, groundTiles[chosenTileIndex].transform);
         enemyObject.transform.Translate(new Vector3(0, 0, -0.001f));
+
+        int tileRow = chosenTileIndex / totalCols;
+        int enemySortingOrder = tileRow * 10 + 1;
+
+        MoleRiseAnimation riseAnim = enemyObject.GetComponent<MoleRiseAnimation>();
+        if (riseAnim == null)
+        {
+            riseAnim = enemyObject.AddComponent<MoleRiseAnimation>();
+        }
+        riseAnim.SetupMasking(enemySortingOrder);
 
         IEnemyBehaviour enemyScript = enemyObject.GetComponent<IEnemyBehaviour>();
         if (enemyScript != null)

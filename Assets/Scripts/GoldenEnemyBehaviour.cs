@@ -23,8 +23,17 @@ public class GoldenEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             StopCoroutine(lifetimeCoroutine);
         }
 
+        float actualLifetime = lifetime * 0.6f;
+
+        MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+        if (riseAnim == null)
+        {
+            riseAnim = gameObject.AddComponent<MoleRiseAnimation>();
+        }
+        riseAnim.Initialize(actualLifetime);
+
         // Golden enemies are very fast
-        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime * 0.6f));
+        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(actualLifetime));
     }
 
     private IEnumerator LifetimeRoutine(float lifetime)
@@ -50,7 +59,16 @@ public class GoldenEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             }
 
             GameManager.Instance.KillEnemy(this);
-            Destroy(gameObject);
+
+            MoleRiseAnimation riseAnim = GetComponent<MoleRiseAnimation>();
+            if (riseAnim != null)
+            {
+                riseAnim.TriggerFastRetract(0.12f, () => Destroy(gameObject));
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }
