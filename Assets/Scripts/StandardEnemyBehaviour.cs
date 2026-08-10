@@ -1,24 +1,54 @@
+using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    float additionalTimeForKill = 2.0f;
+    int scoreValue = 100;
 
-    public float TimeExtension { get; private set; }
-
+    public int ScoreValue => scoreValue;
     public GameObject GameObject => this.gameObject;
+
+    public event Action<IEnemyBehaviour> OnEnemyEscaped;
+
+    private Coroutine lifetimeCoroutine;
+    private bool isHandled = false;
+
+    public void Initialize(float lifetime)
+    {
+        if (lifetimeCoroutine != null)
+        {
+            StopCoroutine(lifetimeCoroutine);
+        }
+
+        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime));
+    }
+
+    private IEnumerator LifetimeRoutine(float lifetime)
+    {
+        yield return new WaitForSeconds(lifetime);
+
+        if (!isHandled && !GameManager.isGameFinished)
+        {
+            isHandled = true;
+            OnEnemyEscaped?.Invoke(this);
+            Destroy(gameObject);
+        }
+    }
 
     private void OnMouseDown()
     {
-        if (!GameManager.isGameFinished)
-            GameManager.Instance.KillEnemy(this);
-    }
+        if (!isHandled && !GameManager.isGameFinished)
+        {
+            isHandled = true;
+            if (lifetimeCoroutine != null)
+            {
+                StopCoroutine(lifetimeCoroutine);
+            }
 
-    private void Awake()
-    {
-        TimeExtension = additionalTimeForKill;
+            GameManager.Instance.KillEnemy(this);
+            Destroy(gameObject);
+        }
     }
 }

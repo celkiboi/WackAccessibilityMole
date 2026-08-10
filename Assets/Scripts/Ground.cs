@@ -5,6 +5,8 @@ using UnityEngine;
 public class Ground : MonoBehaviour
 {
     GameObject[] groundTiles;
+    float[] lastSpawnTimes;
+
     [SerializeField]
     GameObject groundPrefab;
 
@@ -34,6 +36,8 @@ public class Ground : MonoBehaviour
         float tileWidth = totalWidth / totalCols;
 
         groundTiles = new GameObject[totalRows * totalCols];
+        lastSpawnTimes = new float[totalRows * totalCols];
+
         for (int i = 0; i < groundTiles.Length; i++)
         {
             groundTiles[i] = Instantiate(groundPrefab, this.transform);
@@ -47,19 +51,72 @@ public class Ground : MonoBehaviour
             float height = startingHeight - row * tileHeight;
             groundTiles[i].transform.position = new Vector3(width, height, 0);
             groundTiles[i].transform.localScale = new Vector3(tileWidth, tileHeight, 1);
+            
+            lastSpawnTimes[i] = -100f;
         }
 
         NumberOfCols = totalCols;
         NumberOfRows = totalRows;
     }
 
-    public void SpawnEnemy(GameObject enemy)
+    public bool SpawnEnemy(GameObject enemy, float lifetime)
     {
-        int row = Random.Range(0, NumberOfRows);
-        int col = Random.Range(0, NumberOfCols);
-        int tileIndex = row * NumberOfCols + col;
+        List<int> availableIndices = new List<int>();
 
-        GameObject enemyObject = Instantiate(enemy, groundTiles[tileIndex].transform);
-        enemyObject.transform.Translate(new(0, 0, -0.001f));
+        for (int i = 0; i < groundTiles.Length; i++)
+        {
+            if (groundTiles[i].transform.childCount == 0)
+            {
+                availableIndices.Add(i);
+            }
+        }
+
+        if (availableIndices.Count == 0)
+        {
+            return false;
+        }
+
+        float totalWeight = 0f;
+        float[] weights = new float[availableIndices.Count];
+
+        for (int i = 0; i < availableIndices.Count; i++)
+        {
+            int tileIdx = availableIndices[i];
+            float timeElapsed = Time.time - lastSpawnTimes[tileIdx];
+            weights[i] = Mathf.Max(0.1f, timeElapsed * timeElapsed + 1.0f);
+            totalWeight += weights[i];
+        }
+
+        float randomVal = Random.Range(0f, totalWeight);
+        float currentSum = 0f;
+        int chosenTileIndex = availableIndices[0];
+
+        for (int i = 0; i < availableIndices.Count; i++)
+        {
+            currentSum += weights[i];
+            if (randomVal <= currentSum)
+            {
+                chosenTileIndex = availableIndices[i];
+                break;
+            }
+        }
+
+        lastSpawnTimes[chosenTileIndex] = Time.time;
+        GameObject enemyObject = Instantiate(enemy, groundTiles[chosenTileIndex].transform);
+        enemyObject.transform.Translate(new Vector3(0, 0, -0.001f));
+
+        IEnemyBehaviour enemyScript = enemyObject.GetComponent<IEnemyBehaviour>();
+        if (enemyScript != null)
+        {
+            enemyScript.OnEnemyEscaped += GameManager.Instance.OnEnemyEscaped;
+            enemyScript.Initialize(lifetime);
+        }
+
+        return true;
+    }
+
+    public bool SpawnEnemy(GameObject enemy)
+    {
+        return SpawnEnemy(enemy, 2.0f);
     }
 }

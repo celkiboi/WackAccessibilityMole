@@ -1,10 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public interface IEnemyBehaviour
 {
-    float TimeExtension { get; }
-
+    int ScoreValue { get; }
     GameObject GameObject { get; }
+    void Initialize(float lifetime);
+    event Action<IEnemyBehaviour> OnEnemyEscaped;
 }
