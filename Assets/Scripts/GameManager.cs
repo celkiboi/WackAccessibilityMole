@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -56,16 +59,34 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     GameObject ground;
 
+    [Header("UI Elements")]
     [SerializeField]
     TextMeshProUGUI countdownText;
     [SerializeField]
-    TextMeshProUGUI timeRemainingText;
+    TextMeshProUGUI scoreText;
+    [SerializeField]
+    TextMeshProUGUI livesText;
+    [SerializeField]
+    TextMeshProUGUI comboText;
+    [SerializeField]
+    GameObject playAgainButton;
 
     void Start()
     {
         Instance = this;
         isGameFinished = false;
         Time.timeScale = 1f;
+
+        if (playAgainButton != null)
+        {
+            playAgainButton.SetActive(false);
+            Button btn = playAgainButton.GetComponent<Button>();
+            if (btn != null)
+            {
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(RestartGame);
+            }
+        }
 
         currentHealth = maxHealth;
         score = 0;
@@ -172,12 +193,19 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
+    private void SetHudActive(bool active)
+    {
+        if (scoreText != null) scoreText.gameObject.SetActive(active);
+        if (livesText != null) livesText.gameObject.SetActive(active);
+        if (comboText != null) comboText.gameObject.SetActive(active);
+    }
+
     IEnumerator StartCountdown()
     {
+        SetHudActive(false);
+
         if (countdownText != null)
             countdownText.gameObject.SetActive(true);
-        if (timeRemainingText != null)
-            timeRemainingText.gameObject.SetActive(false);
 
         if (countdownText != null) countdownText.text = "3";
         yield return new WaitForSeconds(1f);
@@ -188,9 +216,8 @@ public class GameManager : MonoBehaviour
 
         if (countdownText != null)
             countdownText.gameObject.SetActive(false);
-        if (timeRemainingText != null)
-            timeRemainingText.gameObject.SetActive(true);
 
+        SetHudActive(true);
         hasCountdownFinished = true;
         UpdateUI();
     }
@@ -202,12 +229,14 @@ public class GameManager : MonoBehaviour
         score += enemy.ScoreValue * comboMultiplier;
         comboMultiplier++;
         UpdateUI();
+        TriggerScoreGainFlash();
     }
 
     public void AddScore(int amount)
     {
         score += amount;
         UpdateUI();
+        TriggerScoreGainFlash();
     }
 
     public void TriggerNuke()
@@ -221,7 +250,6 @@ public class GameManager : MonoBehaviour
             }
         }
         
-        // Pause spawning for 3 seconds by setting the timer back
         spawnTimer = -3f;
     }
 
@@ -256,6 +284,87 @@ public class GameManager : MonoBehaviour
         Camera.main.transform.localPosition = originalPos;
     }
 
+    private Coroutine scoreFlashCoroutine;
+
+    private void TriggerScoreGainFlash()
+    {
+        if (scoreFlashCoroutine != null)
+        {
+            StopCoroutine(scoreFlashCoroutine);
+        }
+        scoreFlashCoroutine = StartCoroutine(ScoreGainFlashRoutine());
+    }
+
+    private IEnumerator ScoreGainFlashRoutine()
+    {
+        if (scoreText == null) yield break;
+
+        Transform textTransform = scoreText.transform;
+        Vector3 originalScale = Vector3.one;
+        Vector3 punchScale = originalScale * 1.2f;
+        Color neonGreen = new Color(0.2f, 1.0f, 0.4f);
+
+        float duration = 0.35f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            float scaleT = Mathf.Sin(t * Mathf.PI);
+            textTransform.localScale = Vector3.Lerp(originalScale, punchScale, scaleT);
+
+            scoreText.color = Color.Lerp(neonGreen, Color.white, t);
+
+            yield return null;
+        }
+
+        textTransform.localScale = originalScale;
+        scoreText.color = Color.white;
+    }
+
+    private Coroutine healthFlashCoroutine;
+
+    private void TriggerHealthLostFlash()
+    {
+        if (healthFlashCoroutine != null)
+        {
+            StopCoroutine(healthFlashCoroutine);
+        }
+        healthFlashCoroutine = StartCoroutine(HealthLostFlashRoutine());
+    }
+
+    private IEnumerator HealthLostFlashRoutine()
+    {
+        TextMeshProUGUI targetText = livesText;
+        if (targetText == null) yield break;
+
+        Transform textTransform = targetText.transform;
+        Vector3 originalScale = textTransform.localScale;
+        Vector3 punchScale = originalScale * 1.25f;
+
+        float duration = 0.45f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            float scaleT = Mathf.Sin(t * Mathf.PI);
+            textTransform.localScale = Vector3.Lerp(originalScale, punchScale, scaleT);
+
+            float flashT = Mathf.PingPong(elapsed * 14f, 1f);
+            targetText.color = Color.Lerp(Color.white, Color.red, flashT);
+
+            yield return null;
+        }
+
+        textTransform.localScale = originalScale;
+        targetText.color = Color.white;
+    }
+
     public void HitBomb()
     {
         if (isGameFinished) return;
@@ -263,6 +372,7 @@ public class GameManager : MonoBehaviour
         currentHealth--;
         comboMultiplier = 1;
         UpdateUI();
+        TriggerHealthLostFlash();
 
         if (currentHealth <= 0)
         {
@@ -279,6 +389,7 @@ public class GameManager : MonoBehaviour
             currentHealth--;
             comboMultiplier = 1;
             UpdateUI();
+            TriggerHealthLostFlash();
 
             if (currentHealth <= 0)
             {
@@ -295,15 +406,58 @@ public class GameManager : MonoBehaviour
         if (countdownText != null)
         {
             countdownText.gameObject.SetActive(true);
-            countdownText.text = $"GAME OVER\nFinal Score: {score}";
+            countdownText.text = $"GAME OVER\nFinal Score: {score:N0}";
         }
+
+        if (playAgainButton != null)
+        {
+            playAgainButton.SetActive(true);
+        }
+    }
+
+    public void RestartGame()
+    {
+        Time.timeScale = 1f;
+        isGameFinished = false;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     private void UpdateUI()
     {
-        if (timeRemainingText != null)
+        int safeHealth = Mathf.Max(0, currentHealth);
+        
+        string heartsStr = "";
+        for (int i = 1; i <= maxHealth; i++)
         {
-            timeRemainingText.text = $"Score: {score}  |  Lives: {Mathf.Max(0, currentHealth)}/{maxHealth}  |  Combo: x{comboMultiplier}";
+            if (i <= safeHealth)
+            {
+                heartsStr += "<color=#FF3344>♥</color> ";
+            }
+            else
+            {
+                heartsStr += "<color=#444444>♡</color> ";
+            }
+        }
+        heartsStr = heartsStr.Trim();
+
+        string formattedScore = $"{score:N0}";
+        string comboStr = comboMultiplier > 1 
+            ? $"<color=#FFD700><b>x{comboMultiplier}</b></color>" 
+            : $"x{comboMultiplier}";
+
+        if (scoreText != null)
+        {
+            scoreText.text = $"SCORE: {formattedScore}";
+        }
+
+        if (livesText != null)
+        {
+            livesText.text = $"LIVES: {heartsStr}";
+        }
+
+        if (comboText != null)
+        {
+            comboText.text = $"COMBO: {comboStr}";
         }
     }
 }
