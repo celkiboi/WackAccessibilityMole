@@ -2,13 +2,13 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
+public class BombEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    int scoreValue = 100;
+    int scoreValue = 0; // Bombs shouldn't give score if clicked!
 
     public int ScoreValue => scoreValue;
-    public bool PenalizeOnEscape => true;
+    public bool PenalizeOnEscape => false; // Safe to let it despawn!
     public GameObject GameObject => this.gameObject;
 
     public event Action<IEnemyBehaviour> OnEnemyEscaped;
@@ -33,7 +33,7 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
         if (!isHandled && !GameManager.isGameFinished)
         {
             isHandled = true;
-            OnEnemyEscaped?.Invoke(this);
+            OnEnemyEscaped?.Invoke(this); // Wont penalize because PenalizeOnEscape is false
             Destroy(gameObject);
         }
     }
@@ -48,7 +48,8 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
                 StopCoroutine(lifetimeCoroutine);
             }
 
-            GameManager.Instance.KillEnemy(this);
+            // Clicked a bomb! Penalize!
+            GameManager.Instance.HitBomb();
             Destroy(gameObject);
         }
     }

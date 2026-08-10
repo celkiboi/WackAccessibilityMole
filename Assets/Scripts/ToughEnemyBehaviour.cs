@@ -2,10 +2,12 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
+public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    int scoreValue = 100;
+    int scoreValue = 300;
+    [SerializeField]
+    int clicksRequired = 3;
 
     public int ScoreValue => scoreValue;
     public bool PenalizeOnEscape => true;
@@ -15,6 +17,12 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 
     private Coroutine lifetimeCoroutine;
     private bool isHandled = false;
+    private int currentClicks;
+
+    private void Awake()
+    {
+        currentClicks = clicksRequired;
+    }
 
     public void Initialize(float lifetime)
     {
@@ -23,7 +31,8 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             StopCoroutine(lifetimeCoroutine);
         }
 
-        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime));
+        // Tough enemies stay on screen 50% longer
+        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime * 1.5f));
     }
 
     private IEnumerator LifetimeRoutine(float lifetime)
@@ -42,14 +51,22 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
     {
         if (!isHandled && !GameManager.isGameFinished)
         {
-            isHandled = true;
-            if (lifetimeCoroutine != null)
-            {
-                StopCoroutine(lifetimeCoroutine);
-            }
+            currentClicks--;
+            
+            // Visual feedback
+            transform.localScale *= 0.9f;
 
-            GameManager.Instance.KillEnemy(this);
-            Destroy(gameObject);
+            if (currentClicks <= 0)
+            {
+                isHandled = true;
+                if (lifetimeCoroutine != null)
+                {
+                    StopCoroutine(lifetimeCoroutine);
+                }
+
+                GameManager.Instance.KillEnemy(this);
+                Destroy(gameObject);
+            }
         }
     }
 }

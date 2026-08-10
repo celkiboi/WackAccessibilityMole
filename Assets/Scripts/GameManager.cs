@@ -40,8 +40,18 @@ public class GameManager : MonoBehaviour
 
     public static bool isGameFinished { get; private set; } = false;
 
+    [System.Serializable]
+    public struct EnemySpawnConfig
+    {
+        public GameObject enemyPrefab;
+        public float weight;
+    }
+
+    [Header("Enemy Types")]
     [SerializeField]
     GameObject standardEnemy;
+    [SerializeField]
+    List<EnemySpawnConfig> enemySpawnPool;
 
     [SerializeField]
     GameObject ground;
@@ -111,12 +121,41 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    GameObject GetRandomEnemyPrefab()
+    {
+        if (enemySpawnPool == null || enemySpawnPool.Count == 0)
+        {
+            return standardEnemy;
+        }
+
+        float totalWeight = 0;
+        foreach (var config in enemySpawnPool)
+        {
+            totalWeight += config.weight;
+        }
+
+        float randomVal = Random.Range(0, totalWeight);
+        float currentSum = 0;
+        foreach (var config in enemySpawnPool)
+        {
+            currentSum += config.weight;
+            if (randomVal <= currentSum)
+            {
+                return config.enemyPrefab;
+            }
+        }
+        
+        return standardEnemy;
+    }
+
     bool TrySpawnEnemy()
     {
         if (ground == null) return false;
 
         Ground groundScript = ground.GetComponent<Ground>();
-        if (groundScript != null && groundScript.SpawnEnemy(standardEnemy, currentEnemyLifetime))
+        GameObject prefabToSpawn = GetRandomEnemyPrefab();
+
+        if (groundScript != null && groundScript.SpawnEnemy(prefabToSpawn, currentEnemyLifetime))
         {
             totalEnemiesSpawned++;
             currentSpawnInterval = Mathf.Max(
@@ -165,7 +204,28 @@ public class GameManager : MonoBehaviour
         UpdateUI();
     }
 
-    public void OnEnemyEscaped(IEnemyBehaviour enemy)
+    public void AddScore(int amount)
+    {
+        score += amount;
+        UpdateUI();
+    }
+
+    public void TriggerNuke()
+    {
+        if (ground != null)
+        {
+            Ground groundScript = ground.GetComponent<Ground>();
+            if (groundScript != null)
+            {
+                groundScript.ClearAllEnemies();
+            }
+        }
+        
+        // Pause spawning for 3 seconds by setting the timer back
+        spawnTimer = -3f;
+    }
+
+    public void HitBomb()
     {
         if (isGameFinished) return;
 
@@ -176,6 +236,23 @@ public class GameManager : MonoBehaviour
         if (currentHealth <= 0)
         {
             GameOver();
+        }
+    }
+
+    public void OnEnemyEscaped(IEnemyBehaviour enemy)
+    {
+        if (isGameFinished) return;
+
+        if (enemy.PenalizeOnEscape)
+        {
+            currentHealth--;
+            comboMultiplier = 1;
+            UpdateUI();
+
+            if (currentHealth <= 0)
+            {
+                GameOver();
+            }
         }
     }
 

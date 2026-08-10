@@ -2,10 +2,10 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
+public class GoldenEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    int scoreValue = 100;
+    int scoreValue = 500;
 
     public int ScoreValue => scoreValue;
     public bool PenalizeOnEscape => true;
@@ -23,7 +23,8 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             StopCoroutine(lifetimeCoroutine);
         }
 
-        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime));
+        // Golden enemies are very fast
+        lifetimeCoroutine = StartCoroutine(LifetimeRoutine(lifetime * 0.6f));
     }
 
     private IEnumerator LifetimeRoutine(float lifetime)

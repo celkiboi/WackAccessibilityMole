@@ -119,4 +119,23 @@ public class Ground : MonoBehaviour
     {
         return SpawnEnemy(enemy, 2.0f);
     }
+
+    public void ClearAllEnemies()
+    {
+        for (int i = 0; i < groundTiles.Length; i++)
+        {
+            if (groundTiles[i].transform.childCount > 0)
+            {
+                foreach (Transform child in groundTiles[i].transform)
+                {
+                    IEnemyBehaviour enemy = child.GetComponent<IEnemyBehaviour>();
+                    if (enemy != null)
+                    {
+                        GameManager.Instance.AddScore(enemy.ScoreValue);
+                    }
+                    Destroy(child.gameObject);
+                }
+            }
+        }
+    }
 }

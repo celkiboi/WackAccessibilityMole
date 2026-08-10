@@ -2,10 +2,10 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
+public class NukeEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 {
     [SerializeField]
-    int scoreValue = 100;
+    int scoreValue = 200; // Base score for triggering it
 
     public int ScoreValue => scoreValue;
     public bool PenalizeOnEscape => true;
@@ -48,7 +48,9 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
                 StopCoroutine(lifetimeCoroutine);
             }
 
+            // A nuke gives base score, plus triggers the board clear
             GameManager.Instance.KillEnemy(this);
+            GameManager.Instance.TriggerNuke();
             Destroy(gameObject);
         }
     }
