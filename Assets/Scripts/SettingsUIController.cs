@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,6 +13,12 @@ public class SettingsUIController : MonoBehaviour
     [Header("Game Speed Settings")]
     [SerializeField]
     private Slider gameSpeedSlider;
+
+    [Header("Colorblind Settings")]
+    [SerializeField]
+    private Button colorblindCycleButton;
+    [SerializeField]
+    private TextMeshProUGUI colorblindModeText;
 
     private void OnEnable()
     {
@@ -47,6 +54,14 @@ public class SettingsUIController : MonoBehaviour
             gameSpeedSlider.value = SettingsManager.Instance.GameSpeedMultiplier;
             gameSpeedSlider.onValueChanged.AddListener(OnGameSpeedSliderChanged);
         }
+
+        if (colorblindCycleButton != null)
+        {
+            colorblindCycleButton.onClick.RemoveAllListeners();
+            colorblindCycleButton.onClick.AddListener(OnColorblindCycleClicked);
+        }
+
+        UpdateColorblindUI();
     }
 
     private void OnScreenShakeToggleChanged(bool enabled)
@@ -70,6 +85,41 @@ public class SettingsUIController : MonoBehaviour
         if (SettingsManager.Instance != null)
         {
             SettingsManager.Instance.SetGameSpeedMultiplier(value);
+        }
+    }
+
+    public void OnColorblindCycleClicked()
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.CycleColorblindMode();
+            UpdateColorblindUI();
+        }
+    }
+
+    private void UpdateColorblindUI()
+    {
+        if (SettingsManager.Instance == null) return;
+
+        ColorblindMode currentMode = SettingsManager.Instance.CurrentColorblindMode;
+
+        if (colorblindModeText != null)
+        {
+            switch (currentMode)
+            {
+                case ColorblindMode.Off:
+                    colorblindModeText.text = "Colorblind Mode: Off";
+                    break;
+                case ColorblindMode.Protanopia:
+                    colorblindModeText.text = "Colorblind Mode: Protanopia (Red)";
+                    break;
+                case ColorblindMode.Deuteranopia:
+                    colorblindModeText.text = "Colorblind Mode: Deuteranopia (Green)";
+                    break;
+                case ColorblindMode.Tritanopia:
+                    colorblindModeText.text = "Colorblind Mode: Tritanopia (Blue)";
+                    break;
+            }
         }
     }
 

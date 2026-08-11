@@ -83,6 +83,11 @@ public class GameManager : MonoBehaviour
         isGameFinished = false;
         Time.timeScale = SettingsManager.Instance != null ? SettingsManager.Instance.GameSpeedMultiplier : 1f;
 
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.EnsureCameraEffect();
+        }
+
         if (playAgainButton != null)
         {
             playAgainButton.SetActive(false);
