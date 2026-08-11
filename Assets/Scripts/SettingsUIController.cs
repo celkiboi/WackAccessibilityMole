@@ -13,6 +13,8 @@ public class SettingsUIController : MonoBehaviour
     private Toggle noMouseGameplayToggle;
     [SerializeField]
     private Toggle showMoleKeyCombosToggle;
+    [SerializeField]
+    private Toggle spawnAudioCuesToggle;
 
     [Header("Game Speed Settings")]
     [SerializeField]
@@ -67,6 +69,13 @@ public class SettingsUIController : MonoBehaviour
             showMoleKeyCombosToggle.isOn = canEnable && SettingsManager.Instance.IsShowMoleKeyCombosEnabled;
             UpdateMoleKeyComboToggleVisuals(canEnable);
             showMoleKeyCombosToggle.onValueChanged.AddListener(OnShowMoleKeyCombosToggleChanged);
+        }
+
+        if (spawnAudioCuesToggle != null)
+        {
+            spawnAudioCuesToggle.onValueChanged.RemoveAllListeners();
+            spawnAudioCuesToggle.isOn = SettingsManager.Instance.IsSpawnAudioCuesEnabled;
+            spawnAudioCuesToggle.onValueChanged.AddListener(OnSpawnAudioCuesToggleChanged);
         }
 
         if (gameSpeedSlider != null)
@@ -124,6 +133,14 @@ public class SettingsUIController : MonoBehaviour
         if (SettingsManager.Instance != null)
         {
             SettingsManager.Instance.SetShowMoleKeyCombosEnabled(enabled);
+        }
+    }
+
+    private void OnSpawnAudioCuesToggleChanged(bool enabled)
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetSpawnAudioCuesEnabled(enabled);
         }
     }
 

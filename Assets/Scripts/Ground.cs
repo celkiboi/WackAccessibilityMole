@@ -94,7 +94,6 @@ public class Ground : MonoBehaviour
                 mask.frontSortingOrder = rowSortingOrder + 5;
             }
 
-            // Create per-tile key combo badge (e.g., "D →")
             GameObject tileBadgeObj = new GameObject($"TileKeyCombo_{row}_{col}");
             tileBadgeObj.transform.SetParent(groundTiles[i].transform, false);
             tileBadgeObj.transform.localPosition = new Vector3(0, 0.35f, -0.01f);
@@ -279,6 +278,15 @@ public class Ground : MonoBehaviour
         {
             enemyScript.OnEnemyEscaped += GameManager.Instance.OnEnemyEscaped;
             enemyScript.Initialize(lifetime);
+        }
+
+        if (SettingsManager.Instance != null && SettingsManager.Instance.IsSpawnAudioCuesEnabled)
+        {
+            int tileCol = chosenTileIndex % totalCols;
+            if (SpawnAudioCueManager.Instance != null)
+            {
+                SpawnAudioCueManager.Instance.PlaySpawnCue(tileRow, tileCol, enemyScript);
+            }
         }
 
         return true;

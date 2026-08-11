@@ -20,6 +20,7 @@ public class SettingsManager : MonoBehaviour
     private const string COLORBLIND_INTENSITY_KEY = "Accessibility_ColorblindIntensity";
     private const string NO_MOUSE_GAMEPLAY_KEY = "Accessibility_NoMouseGameplay";
     private const string SHOW_MOLE_KEY_COMBOS_KEY = "Accessibility_ShowMoleKeyCombos";
+    private const string SPAWN_AUDIO_CUES_KEY = "Accessibility_SpawnAudioCues";
 
     [Header("Default Settings")]
     [SerializeField]
@@ -36,6 +37,8 @@ public class SettingsManager : MonoBehaviour
     private bool defaultNoMouseGameplay = false;
     [SerializeField]
     private bool defaultShowMoleKeyCombos = false;
+    [SerializeField]
+    private bool defaultSpawnAudioCues = false;
 
     public bool IsScreenShakeEnabled { get; private set; }
     public bool IsScreenFlashesEnabled { get; private set; }
@@ -44,6 +47,7 @@ public class SettingsManager : MonoBehaviour
     public float ColorblindIntensity { get; private set; }
     public bool IsNoMouseGameplayEnabled { get; private set; }
     public bool IsShowMoleKeyCombosEnabled { get; private set; }
+    public bool IsSpawnAudioCuesEnabled { get; private set; }
 
     public event Action OnSettingsChanged;
 
@@ -76,6 +80,8 @@ public class SettingsManager : MonoBehaviour
         {
             IsShowMoleKeyCombosEnabled = false;
         }
+
+        IsSpawnAudioCuesEnabled = PlayerPrefs.GetInt(SPAWN_AUDIO_CUES_KEY, defaultSpawnAudioCues ? 1 : 0) == 1;
     }
 
     public void SetScreenShakeEnabled(bool enabled)
@@ -115,6 +121,14 @@ public class SettingsManager : MonoBehaviour
         }
         IsShowMoleKeyCombosEnabled = enabled;
         PlayerPrefs.SetInt(SHOW_MOLE_KEY_COMBOS_KEY, enabled ? 1 : 0);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void SetSpawnAudioCuesEnabled(bool enabled)
+    {
+        IsSpawnAudioCuesEnabled = enabled;
+        PlayerPrefs.SetInt(SPAWN_AUDIO_CUES_KEY, enabled ? 1 : 0);
         PlayerPrefs.Save();
         OnSettingsChanged?.Invoke();
     }
@@ -178,5 +192,6 @@ public class SettingsManager : MonoBehaviour
         SetColorblindIntensity(defaultColorblindIntensity);
         SetNoMouseGameplayEnabled(defaultNoMouseGameplay);
         SetShowMoleKeyCombosEnabled(defaultShowMoleKeyCombos);
+        SetSpawnAudioCuesEnabled(defaultSpawnAudioCues);
     }
 }
