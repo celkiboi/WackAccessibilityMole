@@ -72,6 +72,10 @@ public class GameManager : MonoBehaviour
     TextMeshProUGUI actionMessageText;
     [SerializeField]
     GameObject playAgainButton;
+    [SerializeField]
+    GameObject mainMenuButton;
+    [SerializeField]
+    string mainMenuSceneName = "MainMenu";
 
     void Start()
     {
@@ -87,6 +91,17 @@ public class GameManager : MonoBehaviour
             {
                 btn.onClick.RemoveAllListeners();
                 btn.onClick.AddListener(RestartGame);
+            }
+        }
+
+        if (mainMenuButton != null)
+        {
+            mainMenuButton.SetActive(false);
+            Button btn = mainMenuButton.GetComponent<Button>();
+            if (btn != null)
+            {
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(GoToMainMenu);
             }
         }
 
@@ -640,6 +655,11 @@ public class GameManager : MonoBehaviour
         {
             playAgainButton.SetActive(true);
         }
+
+        if (mainMenuButton != null)
+        {
+            mainMenuButton.SetActive(true);
+        }
     }
 
     public void RestartGame()
@@ -647,6 +667,13 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         isGameFinished = false;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void GoToMainMenu()
+    {
+        Time.timeScale = 1f;
+        isGameFinished = false;
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 
     private void UpdateUI()
