@@ -45,6 +45,11 @@ public class StandardEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
         }
     }
 
+    public void Hit()
+    {
+        OnMouseDown();
+    }
+
     private void OnMouseDown()
     {
         if (!isHandled && !GameManager.isGameFinished)

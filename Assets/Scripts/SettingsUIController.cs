@@ -9,6 +9,10 @@ public class SettingsUIController : MonoBehaviour
     private Toggle screenShakeToggle;
     [SerializeField]
     private Toggle screenFlashesToggle;
+    [SerializeField]
+    private Toggle noMouseGameplayToggle;
+    [SerializeField]
+    private Toggle showMoleKeyCombosToggle;
 
     [Header("Game Speed Settings")]
     [SerializeField]
@@ -48,6 +52,23 @@ public class SettingsUIController : MonoBehaviour
             screenFlashesToggle.onValueChanged.AddListener(OnScreenFlashesToggleChanged);
         }
 
+        if (noMouseGameplayToggle != null)
+        {
+            noMouseGameplayToggle.onValueChanged.RemoveAllListeners();
+            noMouseGameplayToggle.isOn = SettingsManager.Instance.IsNoMouseGameplayEnabled;
+            noMouseGameplayToggle.onValueChanged.AddListener(OnNoMouseGameplayToggleChanged);
+        }
+
+        if (showMoleKeyCombosToggle != null)
+        {
+            showMoleKeyCombosToggle.onValueChanged.RemoveAllListeners();
+            bool canEnable = SettingsManager.Instance.IsNoMouseGameplayEnabled;
+            showMoleKeyCombosToggle.interactable = canEnable;
+            showMoleKeyCombosToggle.isOn = canEnable && SettingsManager.Instance.IsShowMoleKeyCombosEnabled;
+            UpdateMoleKeyComboToggleVisuals(canEnable);
+            showMoleKeyCombosToggle.onValueChanged.AddListener(OnShowMoleKeyCombosToggleChanged);
+        }
+
         if (gameSpeedSlider != null)
         {
             gameSpeedSlider.onValueChanged.RemoveAllListeners();
@@ -78,6 +99,43 @@ public class SettingsUIController : MonoBehaviour
         {
             SettingsManager.Instance.SetScreenFlashesEnabled(enabled);
         }
+    }
+
+    private void OnNoMouseGameplayToggleChanged(bool enabled)
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetNoMouseGameplayEnabled(enabled);
+        }
+
+        if (showMoleKeyCombosToggle != null)
+        {
+            showMoleKeyCombosToggle.interactable = enabled;
+            if (!enabled)
+            {
+                showMoleKeyCombosToggle.isOn = false;
+            }
+            UpdateMoleKeyComboToggleVisuals(enabled);
+        }
+    }
+
+    private void OnShowMoleKeyCombosToggleChanged(bool enabled)
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetShowMoleKeyCombosEnabled(enabled);
+        }
+    }
+
+    private void UpdateMoleKeyComboToggleVisuals(bool interactable)
+    {
+        if (showMoleKeyCombosToggle == null) return;
+        CanvasGroup cg = showMoleKeyCombosToggle.GetComponent<CanvasGroup>();
+        if (cg == null)
+        {
+            cg = showMoleKeyCombosToggle.gameObject.AddComponent<CanvasGroup>();
+        }
+        cg.alpha = interactable ? 1.0f : 0.5f;
     }
 
     private void OnGameSpeedSliderChanged(float value)

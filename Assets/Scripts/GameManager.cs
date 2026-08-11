@@ -133,7 +133,68 @@ public class GameManager : MonoBehaviour
                 }
             }
 
+            if (SettingsManager.Instance != null && SettingsManager.Instance.IsNoMouseGameplayEnabled)
+            {
+                HandleKeyboardInput();
+            }
+
             CheckForMisclick();
+        }
+    }
+
+    private void HandleKeyboardInput()
+    {
+        bool wDown = Input.GetKey(KeyCode.W);
+        bool aDown = Input.GetKey(KeyCode.A);
+        bool sDown = Input.GetKey(KeyCode.S);
+        bool dDown = Input.GetKey(KeyCode.D);
+        bool eDown = Input.GetKey(KeyCode.E);
+
+        bool upDown = Input.GetKey(KeyCode.UpArrow);
+        bool leftDown = Input.GetKey(KeyCode.LeftArrow);
+        bool downDown = Input.GetKey(KeyCode.DownArrow);
+        bool rightDown = Input.GetKey(KeyCode.RightArrow);
+
+        bool wPressed = Input.GetKeyDown(KeyCode.W);
+        bool aPressed = Input.GetKeyDown(KeyCode.A);
+        bool sPressed = Input.GetKeyDown(KeyCode.S);
+        bool dPressed = Input.GetKeyDown(KeyCode.D);
+        bool ePressed = Input.GetKeyDown(KeyCode.E);
+
+        bool upPressed = Input.GetKeyDown(KeyCode.UpArrow);
+        bool leftPressed = Input.GetKeyDown(KeyCode.LeftArrow);
+        bool downPressed = Input.GetKeyDown(KeyCode.DownArrow);
+        bool rightPressed = Input.GetKeyDown(KeyCode.RightArrow);
+
+        int col = -1;
+        if (wDown) col = 0;
+        else if (aDown) col = 1;
+        else if (sDown) col = 2;
+        else if (dDown) col = 3;
+        else if (eDown) col = 4;
+
+        int row = -1;
+        if (upDown) row = 0;
+        else if (leftDown) row = 1;
+        else if (downDown) row = 2;
+        else if (rightDown) row = 3;
+
+        bool colJustPressed = wPressed || aPressed || sPressed || dPressed || ePressed;
+        bool rowJustPressed = upPressed || leftPressed || downPressed || rightPressed;
+
+        if (row >= 0 && col >= 0 && (rowJustPressed || colJustPressed))
+        {
+            SmashTile(row, col);
+        }
+    }
+
+    public void SmashTile(int row, int col)
+    {
+        if (ground == null) return;
+        Ground groundScript = ground.GetComponent<Ground>();
+        if (groundScript != null)
+        {
+            groundScript.SmashTileAt(row, col);
         }
     }
 

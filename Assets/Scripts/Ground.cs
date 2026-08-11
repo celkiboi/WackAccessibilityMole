@@ -1,10 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class Ground : MonoBehaviour
 {
     GameObject[] groundTiles;
+    GameObject[] keyHintHeaderObjects;
+    GameObject[] keyHintTileObjects;
     float[] lastSpawnTimes;
 
     [SerializeField]
@@ -27,6 +30,26 @@ public class Ground : MonoBehaviour
     public static int NumberOfRows { get; private set; }
     public static int NumberOfCols { get; private set; }
 
+    private readonly string[] rowKeys = new string[] { "↑", "←", "↓", "→" };
+    private readonly string[] colKeys = new string[] { "W", "A", "S", "D", "E" };
+
+    private void OnEnable()
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.OnSettingsChanged += UpdateKeyHintVisibility;
+        }
+        UpdateKeyHintVisibility();
+    }
+
+    private void OnDisable()
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.OnSettingsChanged -= UpdateKeyHintVisibility;
+        }
+    }
+
     void Start()
     {
         float totalWidth = Mathf.Abs(endingWidth - startingWidth);
@@ -36,6 +59,7 @@ public class Ground : MonoBehaviour
         float tileWidth = totalWidth / totalCols;
 
         groundTiles = new GameObject[totalRows * totalCols];
+        keyHintTileObjects = new GameObject[totalRows * totalCols];
         lastSpawnTimes = new float[totalRows * totalCols];
 
         for (int i = 0; i < groundTiles.Length; i++)
@@ -70,11 +94,128 @@ public class Ground : MonoBehaviour
                 mask.frontSortingOrder = rowSortingOrder + 5;
             }
 
+            // Create per-tile key combo badge (e.g., "D →")
+            GameObject tileBadgeObj = new GameObject($"TileKeyCombo_{row}_{col}");
+            tileBadgeObj.transform.SetParent(groundTiles[i].transform, false);
+            tileBadgeObj.transform.localPosition = new Vector3(0, 0.35f, -0.01f);
+
+            TextMeshPro textMesh = tileBadgeObj.AddComponent<TextMeshPro>();
+            string rStr = row < rowKeys.Length ? rowKeys[row] : $"{row}";
+            string cStr = col < colKeys.Length ? colKeys[col] : $"{col}";
+            textMesh.text = $"{cStr} {rStr}";
+            textMesh.fontSize = 3.5f;
+            textMesh.alignment = TextAlignmentOptions.Center;
+            textMesh.color = new Color(1.0f, 0.95f, 0.3f, 0.95f);
+            textMesh.fontStyle = FontStyles.Bold;
+            textMesh.sortingOrder = rowSortingOrder + 8;
+
+            tileBadgeObj.AddComponent<TileKeyComboEffect>();
+            keyHintTileObjects[i] = tileBadgeObj;
             lastSpawnTimes[i] = -100f;
+        }
+
+        keyHintHeaderObjects = new GameObject[totalCols + totalRows];
+        int headerIdx = 0;
+
+        for (int c = 0; c < totalCols; c++)
+        {
+            GameObject colHeaderObj = new GameObject($"ColHeader_{c}");
+            colHeaderObj.transform.SetParent(this.transform, false);
+
+            float posX = startingWidth + c * tileWidth;
+            float posY = startingHeight + tileHeight * 0.55f;
+            colHeaderObj.transform.position = new Vector3(posX, posY, -0.1f);
+
+            TextMeshPro textMesh = colHeaderObj.AddComponent<TextMeshPro>();
+            textMesh.text = c < colKeys.Length ? colKeys[c] : $"{c}";
+            textMesh.fontSize = 4.5f;
+            textMesh.alignment = TextAlignmentOptions.Center;
+            textMesh.color = Color.white;
+            textMesh.fontStyle = FontStyles.Bold;
+            textMesh.sortingOrder = 100;
+
+            keyHintHeaderObjects[headerIdx++] = colHeaderObj;
+        }
+
+        for (int r = 0; r < totalRows; r++)
+        {
+            GameObject rowHeaderObj = new GameObject($"RowHeader_{r}");
+            rowHeaderObj.transform.SetParent(this.transform, false);
+
+            float posX = startingWidth + (totalCols - 1) * tileWidth + tileWidth * 0.65f;
+            float posY = startingHeight - r * tileHeight;
+            rowHeaderObj.transform.position = new Vector3(posX, posY, -0.1f);
+
+            TextMeshPro textMesh = rowHeaderObj.AddComponent<TextMeshPro>();
+            textMesh.text = r < rowKeys.Length ? rowKeys[r] : $"{r}";
+            textMesh.fontSize = 4.5f;
+            textMesh.alignment = TextAlignmentOptions.Center;
+            textMesh.color = Color.white;
+            textMesh.fontStyle = FontStyles.Bold;
+            textMesh.sortingOrder = 100;
+
+            keyHintHeaderObjects[headerIdx++] = rowHeaderObj;
         }
 
         NumberOfCols = totalCols;
         NumberOfRows = totalRows;
+
+        UpdateKeyHintVisibility();
+    }
+
+    private void Update()
+    {
+        UpdateKeyHintVisibility();
+    }
+
+    public void UpdateKeyHintVisibility()
+    {
+        bool showHeaders = SettingsManager.Instance != null && SettingsManager.Instance.IsNoMouseGameplayEnabled;
+        if (keyHintHeaderObjects != null)
+        {
+            foreach (GameObject headerObj in keyHintHeaderObjects)
+            {
+                if (headerObj != null)
+                {
+                    headerObj.SetActive(showHeaders);
+                }
+            }
+        }
+
+        bool showTileCombosSetting = SettingsManager.Instance != null && 
+                                     SettingsManager.Instance.IsNoMouseGameplayEnabled && 
+                                     SettingsManager.Instance.IsShowMoleKeyCombosEnabled;
+
+        if (keyHintTileObjects != null && groundTiles != null)
+        {
+            for (int i = 0; i < groundTiles.Length; i++)
+            {
+                if (keyHintTileObjects[i] != null)
+                {
+                    bool hasActiveEnemy = groundTiles[i] != null && 
+                                          groundTiles[i].GetComponentInChildren<IEnemyBehaviour>() != null;
+
+                    keyHintTileObjects[i].SetActive(showTileCombosSetting && hasActiveEnemy);
+                }
+            }
+        }
+    }
+
+    public void SmashTileAt(int row, int col)
+    {
+        if (groundTiles == null) return;
+        int tileIndex = row * totalCols + col;
+        if (tileIndex < 0 || tileIndex >= groundTiles.Length) return;
+
+        IEnemyBehaviour enemy = groundTiles[tileIndex].GetComponentInChildren<IEnemyBehaviour>();
+        if (enemy != null)
+        {
+            enemy.Hit();
+        }
+        else
+        {
+            GameManager.Instance.OnMisclick();
+        }
     }
 
     public bool SpawnEnemy(GameObject enemy, float lifetime)
@@ -83,7 +224,7 @@ public class Ground : MonoBehaviour
 
         for (int i = 0; i < groundTiles.Length; i++)
         {
-            if (groundTiles[i].transform.childCount == 0)
+            if (groundTiles[i].GetComponentInChildren<IEnemyBehaviour>() == null)
             {
                 availableIndices.Add(i);
             }
@@ -152,17 +293,11 @@ public class Ground : MonoBehaviour
     {
         for (int i = 0; i < groundTiles.Length; i++)
         {
-            if (groundTiles[i].transform.childCount > 0)
+            IEnemyBehaviour enemy = groundTiles[i].GetComponentInChildren<IEnemyBehaviour>();
+            if (enemy != null)
             {
-                foreach (Transform child in groundTiles[i].transform)
-                {
-                    IEnemyBehaviour enemy = child.GetComponent<IEnemyBehaviour>();
-                    if (enemy != null)
-                    {
-                        GameManager.Instance.AddScore(enemy.ScoreValue);
-                    }
-                    Destroy(child.gameObject);
-                }
+                GameManager.Instance.AddScore(enemy.ScoreValue);
+                Destroy(enemy.GameObject);
             }
         }
     }

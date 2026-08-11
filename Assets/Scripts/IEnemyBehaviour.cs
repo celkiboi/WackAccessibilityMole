@@ -7,5 +7,6 @@ public interface IEnemyBehaviour
     bool PenalizeOnEscape { get; }
     GameObject GameObject { get; }
     void Initialize(float lifetime);
+    void Hit();
     event Action<IEnemyBehaviour> OnEnemyEscaped;
 }

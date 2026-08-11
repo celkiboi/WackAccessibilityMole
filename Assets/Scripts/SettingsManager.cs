@@ -18,6 +18,8 @@ public class SettingsManager : MonoBehaviour
     private const string GAME_SPEED_KEY = "Accessibility_GameSpeed";
     private const string COLORBLIND_MODE_KEY = "Accessibility_ColorblindMode";
     private const string COLORBLIND_INTENSITY_KEY = "Accessibility_ColorblindIntensity";
+    private const string NO_MOUSE_GAMEPLAY_KEY = "Accessibility_NoMouseGameplay";
+    private const string SHOW_MOLE_KEY_COMBOS_KEY = "Accessibility_ShowMoleKeyCombos";
 
     [Header("Default Settings")]
     [SerializeField]
@@ -30,12 +32,18 @@ public class SettingsManager : MonoBehaviour
     private ColorblindMode defaultColorblindMode = ColorblindMode.Off;
     [SerializeField]
     private float defaultColorblindIntensity = 1.0f;
+    [SerializeField]
+    private bool defaultNoMouseGameplay = false;
+    [SerializeField]
+    private bool defaultShowMoleKeyCombos = false;
 
     public bool IsScreenShakeEnabled { get; private set; }
     public bool IsScreenFlashesEnabled { get; private set; }
     public float GameSpeedMultiplier { get; private set; }
     public ColorblindMode CurrentColorblindMode { get; private set; }
     public float ColorblindIntensity { get; private set; }
+    public bool IsNoMouseGameplayEnabled { get; private set; }
+    public bool IsShowMoleKeyCombosEnabled { get; private set; }
 
     public event Action OnSettingsChanged;
 
@@ -61,6 +69,13 @@ public class SettingsManager : MonoBehaviour
         int modeInt = PlayerPrefs.GetInt(COLORBLIND_MODE_KEY, (int)defaultColorblindMode);
         CurrentColorblindMode = Enum.IsDefined(typeof(ColorblindMode), modeInt) ? (ColorblindMode)modeInt : ColorblindMode.Off;
         ColorblindIntensity = PlayerPrefs.GetFloat(COLORBLIND_INTENSITY_KEY, defaultColorblindIntensity);
+        IsNoMouseGameplayEnabled = PlayerPrefs.GetInt(NO_MOUSE_GAMEPLAY_KEY, defaultNoMouseGameplay ? 1 : 0) == 1;
+        
+        IsShowMoleKeyCombosEnabled = PlayerPrefs.GetInt(SHOW_MOLE_KEY_COMBOS_KEY, defaultShowMoleKeyCombos ? 1 : 0) == 1;
+        if (!IsNoMouseGameplayEnabled)
+        {
+            IsShowMoleKeyCombosEnabled = false;
+        }
     }
 
     public void SetScreenShakeEnabled(bool enabled)
@@ -75,6 +90,31 @@ public class SettingsManager : MonoBehaviour
     {
         IsScreenFlashesEnabled = enabled;
         PlayerPrefs.SetInt(SCREEN_FLASHES_KEY, enabled ? 1 : 0);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void SetNoMouseGameplayEnabled(bool enabled)
+    {
+        IsNoMouseGameplayEnabled = enabled;
+        if (!enabled)
+        {
+            IsShowMoleKeyCombosEnabled = false;
+            PlayerPrefs.SetInt(SHOW_MOLE_KEY_COMBOS_KEY, 0);
+        }
+        PlayerPrefs.SetInt(NO_MOUSE_GAMEPLAY_KEY, enabled ? 1 : 0);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void SetShowMoleKeyCombosEnabled(bool enabled)
+    {
+        if (!IsNoMouseGameplayEnabled)
+        {
+            enabled = false;
+        }
+        IsShowMoleKeyCombosEnabled = enabled;
+        PlayerPrefs.SetInt(SHOW_MOLE_KEY_COMBOS_KEY, enabled ? 1 : 0);
         PlayerPrefs.Save();
         OnSettingsChanged?.Invoke();
     }
@@ -136,5 +176,7 @@ public class SettingsManager : MonoBehaviour
         SetGameSpeedMultiplier(defaultGameSpeed);
         SetColorblindMode(defaultColorblindMode);
         SetColorblindIntensity(defaultColorblindIntensity);
+        SetNoMouseGameplayEnabled(defaultNoMouseGameplay);
+        SetShowMoleKeyCombosEnabled(defaultShowMoleKeyCombos);
     }
 }
