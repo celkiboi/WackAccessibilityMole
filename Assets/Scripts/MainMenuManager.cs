@@ -7,9 +7,24 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField]
     private string gameSceneName = "MainLevel";
 
-    [Header("UI Panels (Optional)")]
+    [Header("UI Panels / Canvases")]
+    [SerializeField]
+    private GameObject mainPanel;
     [SerializeField]
     private GameObject settingsPanel;
+
+    private void Start()
+    {
+        if (mainPanel != null)
+        {
+            mainPanel.SetActive(true);
+        }
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+    }
 
     public void PlayGame()
     {
@@ -27,6 +42,11 @@ public class MainMenuManager : MonoBehaviour
         {
             Debug.LogWarning("Settings Panel is not assigned in the MainMenuManager Inspector.");
         }
+
+        if (mainPanel != null)
+        {
+            mainPanel.SetActive(false);
+        }
     }
 
     public void CloseSettings()
@@ -34,6 +54,11 @@ public class MainMenuManager : MonoBehaviour
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
+        }
+
+        if (mainPanel != null)
+        {
+            mainPanel.SetActive(true);
         }
     }
 

@@ -81,7 +81,7 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         isGameFinished = false;
-        Time.timeScale = 1f;
+        Time.timeScale = SettingsManager.Instance != null ? SettingsManager.Instance.GameSpeedMultiplier : 1f;
 
         if (playAgainButton != null)
         {
@@ -478,6 +478,7 @@ public class GameManager : MonoBehaviour
     public void TriggerCameraShake(float duration = 0.2f, float magnitude = 0.15f)
     {
         if (Camera.main == null) return;
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.IsScreenShakeEnabled) return;
         if (cameraShakeCoroutine != null)
         {
             StopCoroutine(cameraShakeCoroutine);
@@ -535,7 +536,8 @@ public class GameManager : MonoBehaviour
             float scaleT = Mathf.Sin(t * Mathf.PI);
             textTransform.localScale = Vector3.Lerp(originalScale, punchScale, scaleT);
 
-            scoreText.color = Color.Lerp(neonGreen, Color.white, t);
+            bool allowFlashes = SettingsManager.Instance == null || SettingsManager.Instance.IsScreenFlashesEnabled;
+            scoreText.color = allowFlashes ? Color.Lerp(neonGreen, Color.white, t) : Color.white;
 
             yield return null;
         }
@@ -575,7 +577,8 @@ public class GameManager : MonoBehaviour
             float scaleT = Mathf.Sin(t * Mathf.PI);
             textTransform.localScale = Vector3.Lerp(originalScale, punchScale, scaleT);
 
-            float flashT = Mathf.PingPong(elapsed * 14f, 1f);
+            bool allowFlashes = SettingsManager.Instance == null || SettingsManager.Instance.IsScreenFlashesEnabled;
+            float flashT = allowFlashes ? Mathf.PingPong(elapsed * 14f, 1f) : 0f;
             targetText.color = Color.Lerp(Color.white, Color.red, flashT);
 
             yield return null;
@@ -664,7 +667,7 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        Time.timeScale = 1f;
+        Time.timeScale = SettingsManager.Instance != null ? SettingsManager.Instance.GameSpeedMultiplier : 1f;
         isGameFinished = false;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }

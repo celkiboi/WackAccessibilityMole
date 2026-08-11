@@ -185,13 +185,15 @@ public class MoleRiseAnimation : MonoBehaviour
 
             transform.localScale = Vector3.Lerp(initialScale, targetScale, Mathf.SmoothStep(0f, 1f, t));
 
+            bool allowFlashes = SettingsManager.Instance == null || SettingsManager.Instance.IsScreenFlashesEnabled;
+
             for (int i = 0; i < renderers.Length; i++)
             {
                 if (renderers[i] != null)
                 {
-                    Color c = Color.Lerp(flashColor, originalColors[i], t * 0.5f);
-                    c.a = Mathf.Lerp(1f, 0f, t);
-                    renderers[i].color = c;
+                    Color baseColor = allowFlashes ? Color.Lerp(flashColor, originalColors[i], t * 0.5f) : originalColors[i];
+                    baseColor.a = Mathf.Lerp(1f, 0f, t);
+                    renderers[i].color = baseColor;
                 }
             }
 
