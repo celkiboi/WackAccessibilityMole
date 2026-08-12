@@ -15,6 +15,8 @@ public class SettingsUIController : MonoBehaviour
     private Toggle showMoleKeyCombosToggle;
     [SerializeField]
     private Toggle spawnAudioCuesToggle;
+    [SerializeField]
+    private Toggle aimAssistToggle;
 
     [Header("Game Speed Settings")]
     [SerializeField]
@@ -76,6 +78,13 @@ public class SettingsUIController : MonoBehaviour
             spawnAudioCuesToggle.onValueChanged.RemoveAllListeners();
             spawnAudioCuesToggle.isOn = SettingsManager.Instance.IsSpawnAudioCuesEnabled;
             spawnAudioCuesToggle.onValueChanged.AddListener(OnSpawnAudioCuesToggleChanged);
+        }
+
+        if (aimAssistToggle != null)
+        {
+            aimAssistToggle.onValueChanged.RemoveAllListeners();
+            aimAssistToggle.isOn = SettingsManager.Instance.IsAimAssistEnabled;
+            aimAssistToggle.onValueChanged.AddListener(OnAimAssistToggleChanged);
         }
 
         if (gameSpeedSlider != null)
@@ -141,6 +150,14 @@ public class SettingsUIController : MonoBehaviour
         if (SettingsManager.Instance != null)
         {
             SettingsManager.Instance.SetSpawnAudioCuesEnabled(enabled);
+        }
+    }
+
+    private void OnAimAssistToggleChanged(bool enabled)
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetAimAssistEnabled(enabled);
         }
     }
 

@@ -21,6 +21,7 @@ public class SettingsManager : MonoBehaviour
     private const string NO_MOUSE_GAMEPLAY_KEY = "Accessibility_NoMouseGameplay";
     private const string SHOW_MOLE_KEY_COMBOS_KEY = "Accessibility_ShowMoleKeyCombos";
     private const string SPAWN_AUDIO_CUES_KEY = "Accessibility_SpawnAudioCues";
+    private const string AIM_ASSIST_KEY = "Accessibility_AimAssist";
 
     [Header("Default Settings")]
     [SerializeField]
@@ -39,6 +40,8 @@ public class SettingsManager : MonoBehaviour
     private bool defaultShowMoleKeyCombos = false;
     [SerializeField]
     private bool defaultSpawnAudioCues = false;
+    [SerializeField]
+    private bool defaultAimAssist = false;
 
     public bool IsScreenShakeEnabled { get; private set; }
     public bool IsScreenFlashesEnabled { get; private set; }
@@ -48,6 +51,7 @@ public class SettingsManager : MonoBehaviour
     public bool IsNoMouseGameplayEnabled { get; private set; }
     public bool IsShowMoleKeyCombosEnabled { get; private set; }
     public bool IsSpawnAudioCuesEnabled { get; private set; }
+    public bool IsAimAssistEnabled { get; private set; }
 
     public event Action OnSettingsChanged;
 
@@ -82,6 +86,7 @@ public class SettingsManager : MonoBehaviour
         }
 
         IsSpawnAudioCuesEnabled = PlayerPrefs.GetInt(SPAWN_AUDIO_CUES_KEY, defaultSpawnAudioCues ? 1 : 0) == 1;
+        IsAimAssistEnabled = PlayerPrefs.GetInt(AIM_ASSIST_KEY, defaultAimAssist ? 1 : 0) == 1;
     }
 
     public void SetScreenShakeEnabled(bool enabled)
@@ -129,6 +134,14 @@ public class SettingsManager : MonoBehaviour
     {
         IsSpawnAudioCuesEnabled = enabled;
         PlayerPrefs.SetInt(SPAWN_AUDIO_CUES_KEY, enabled ? 1 : 0);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void SetAimAssistEnabled(bool enabled)
+    {
+        IsAimAssistEnabled = enabled;
+        PlayerPrefs.SetInt(AIM_ASSIST_KEY, enabled ? 1 : 0);
         PlayerPrefs.Save();
         OnSettingsChanged?.Invoke();
     }
@@ -193,5 +206,6 @@ public class SettingsManager : MonoBehaviour
         SetNoMouseGameplayEnabled(defaultNoMouseGameplay);
         SetShowMoleKeyCombosEnabled(defaultShowMoleKeyCombos);
         SetSpawnAudioCuesEnabled(defaultSpawnAudioCues);
+        SetAimAssistEnabled(defaultAimAssist);
     }
 }

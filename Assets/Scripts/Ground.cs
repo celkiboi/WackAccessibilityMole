@@ -29,6 +29,10 @@ public class Ground : MonoBehaviour
 
     public static int NumberOfRows { get; private set; }
     public static int NumberOfCols { get; private set; }
+    public static float TileWidth { get; private set; }
+    public static float TileHeight { get; private set; }
+
+    public GameObject[] GroundTiles => groundTiles;
 
     private readonly string[] rowKeys = new string[] { "↑", "←", "↓", "→" };
     private readonly string[] colKeys = new string[] { "W", "A", "S", "D", "E" };
@@ -57,6 +61,9 @@ public class Ground : MonoBehaviour
 
         float tileHeight = totalHeight / totalRows;
         float tileWidth = totalWidth / totalCols;
+
+        TileWidth = tileWidth;
+        TileHeight = tileHeight;
 
         groundTiles = new GameObject[totalRows * totalCols];
         keyHintTileObjects = new GameObject[totalRows * totalCols];
@@ -159,7 +166,52 @@ public class Ground : MonoBehaviour
         NumberOfCols = totalCols;
         NumberOfRows = totalRows;
 
+        EnsureAimAssistController();
         UpdateKeyHintVisibility();
+    }
+
+    private void EnsureAimAssistController()
+    {
+        if (GetComponent<AimAssistController>() == null)
+        {
+            gameObject.AddComponent<AimAssistController>();
+        }
+    }
+
+    public bool GetTileAtWorldPosition(Vector2 worldPos, out int row, out int col)
+    {
+        row = -1;
+        col = -1;
+        if (groundTiles == null || groundTiles.Length == 0) return false;
+
+        int bestIndex = -1;
+        float minSqDistance = float.MaxValue;
+
+        for (int i = 0; i < groundTiles.Length; i++)
+        {
+            if (groundTiles[i] == null) continue;
+
+            Vector3 tilePos = groundTiles[i].transform.position;
+            float dx = worldPos.x - tilePos.x;
+            float dy = worldPos.y - tilePos.y;
+            float sqDist = dx * dx + dy * dy;
+
+            if (sqDist < minSqDistance)
+            {
+                minSqDistance = sqDist;
+                bestIndex = i;
+            }
+        }
+
+        float maxAllowedDist = Mathf.Max(TileWidth, TileHeight) * 1.5f;
+        if (bestIndex >= 0 && Mathf.Sqrt(minSqDistance) <= maxAllowedDist)
+        {
+            row = bestIndex / totalCols;
+            col = bestIndex % totalCols;
+            return true;
+        }
+
+        return false;
     }
 
     private void Update()

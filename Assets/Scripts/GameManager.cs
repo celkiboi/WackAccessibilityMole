@@ -200,6 +200,11 @@ public class GameManager : MonoBehaviour
 
     private void CheckForMisclick()
     {
+        if (SettingsManager.Instance != null && SettingsManager.Instance.IsAimAssistEnabled)
+        {
+            return;
+        }
+
         if (Input.GetMouseButtonDown(0) && Camera.main != null)
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);

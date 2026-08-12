@@ -57,10 +57,20 @@ public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
 
     public void Hit()
     {
-        OnMouseDown();
+        ExecuteHit();
     }
 
     private void OnMouseDown()
+    {
+        if (SettingsManager.Instance != null && SettingsManager.Instance.IsAimAssistEnabled)
+        {
+            return;
+        }
+
+        ExecuteHit();
+    }
+
+    private void ExecuteHit()
     {
         if (!isHandled && !GameManager.isGameFinished)
         {
