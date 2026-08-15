@@ -22,6 +22,12 @@ public class SettingsUIController : MonoBehaviour
     [SerializeField]
     private Slider gameSpeedSlider;
 
+    [Header("Keyboard Mode Settings")]
+    [SerializeField]
+    private Button keyboardModeCycleButton;
+    [SerializeField]
+    private TextMeshProUGUI keyboardModeText;
+
     [Header("Colorblind Settings")]
     [SerializeField]
     private Button colorblindCycleButton;
@@ -66,7 +72,8 @@ public class SettingsUIController : MonoBehaviour
         if (showMoleKeyCombosToggle != null)
         {
             showMoleKeyCombosToggle.onValueChanged.RemoveAllListeners();
-            bool canEnable = SettingsManager.Instance.IsNoMouseGameplayEnabled;
+            bool canEnable = SettingsManager.Instance.IsNoMouseGameplayEnabled && 
+                             SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.MatrixCombo;
             showMoleKeyCombosToggle.interactable = canEnable;
             showMoleKeyCombosToggle.isOn = canEnable && SettingsManager.Instance.IsShowMoleKeyCombosEnabled;
             UpdateMoleKeyComboToggleVisuals(canEnable);
@@ -100,7 +107,14 @@ public class SettingsUIController : MonoBehaviour
             colorblindCycleButton.onClick.AddListener(OnColorblindCycleClicked);
         }
 
+        if (keyboardModeCycleButton != null)
+        {
+            keyboardModeCycleButton.onClick.RemoveAllListeners();
+            keyboardModeCycleButton.onClick.AddListener(OnKeyboardModeCycleClicked);
+        }
+
         UpdateColorblindUI();
+        UpdateKeyboardModeUI();
     }
 
     private void OnScreenShakeToggleChanged(bool enabled)
@@ -126,15 +140,26 @@ public class SettingsUIController : MonoBehaviour
             SettingsManager.Instance.SetNoMouseGameplayEnabled(enabled);
         }
 
+        bool isMatrixMode = SettingsManager.Instance != null &&
+                            SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.MatrixCombo;
+        bool canEnable = enabled && isMatrixMode;
+
         if (showMoleKeyCombosToggle != null)
         {
-            showMoleKeyCombosToggle.interactable = enabled;
-            if (!enabled)
+            showMoleKeyCombosToggle.interactable = canEnable;
+            if (!canEnable)
             {
                 showMoleKeyCombosToggle.isOn = false;
             }
-            UpdateMoleKeyComboToggleVisuals(enabled);
+            UpdateMoleKeyComboToggleVisuals(canEnable);
         }
+
+        if (keyboardModeCycleButton != null)
+        {
+            keyboardModeCycleButton.interactable = enabled;
+        }
+
+        UpdateKeyboardModeUI();
     }
 
     private void OnShowMoleKeyCombosToggleChanged(bool enabled)
@@ -186,6 +211,46 @@ public class SettingsUIController : MonoBehaviour
         {
             SettingsManager.Instance.CycleColorblindMode();
             UpdateColorblindUI();
+        }
+    }
+
+    public void OnKeyboardModeCycleClicked()
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.CycleKeyboardControlMode();
+            UpdateKeyboardModeUI();
+
+            bool canEnable = SettingsManager.Instance.IsNoMouseGameplayEnabled && 
+                             SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.MatrixCombo;
+            if (showMoleKeyCombosToggle != null)
+            {
+                showMoleKeyCombosToggle.interactable = canEnable;
+                if (!canEnable)
+                {
+                    showMoleKeyCombosToggle.isOn = false;
+                }
+                UpdateMoleKeyComboToggleVisuals(canEnable);
+            }
+        }
+    }
+
+    private void UpdateKeyboardModeUI()
+    {
+        if (SettingsManager.Instance == null) return;
+
+        KeyboardControlMode mode = SettingsManager.Instance.CurrentKeyboardControlMode;
+        if (keyboardModeText != null)
+        {
+            switch (mode)
+            {
+                case KeyboardControlMode.MatrixCombo:
+                    keyboardModeText.text = "Keyboard Mode: Matrix Combos (W/A/S/D + Arrows)";
+                    break;
+                case KeyboardControlMode.GridCursor:
+                    keyboardModeText.text = "Keyboard Mode: Grid Cursor (Arrows/WASD + Space/Enter)";
+                    break;
+            }
         }
     }
 

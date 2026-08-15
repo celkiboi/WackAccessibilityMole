@@ -142,49 +142,92 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public int KeyboardCursorRow { get; private set; } = 0;
+    public int KeyboardCursorCol { get; private set; } = 0;
+
     private void HandleKeyboardInput()
     {
-        bool wDown = Input.GetKey(KeyCode.W);
-        bool aDown = Input.GetKey(KeyCode.A);
-        bool sDown = Input.GetKey(KeyCode.S);
-        bool dDown = Input.GetKey(KeyCode.D);
-        bool eDown = Input.GetKey(KeyCode.E);
+        if (SettingsManager.Instance == null) return;
 
-        bool upDown = Input.GetKey(KeyCode.UpArrow);
-        bool leftDown = Input.GetKey(KeyCode.LeftArrow);
-        bool downDown = Input.GetKey(KeyCode.DownArrow);
-        bool rightDown = Input.GetKey(KeyCode.RightArrow);
-
-        bool wPressed = Input.GetKeyDown(KeyCode.W);
-        bool aPressed = Input.GetKeyDown(KeyCode.A);
-        bool sPressed = Input.GetKeyDown(KeyCode.S);
-        bool dPressed = Input.GetKeyDown(KeyCode.D);
-        bool ePressed = Input.GetKeyDown(KeyCode.E);
-
-        bool upPressed = Input.GetKeyDown(KeyCode.UpArrow);
-        bool leftPressed = Input.GetKeyDown(KeyCode.LeftArrow);
-        bool downPressed = Input.GetKeyDown(KeyCode.DownArrow);
-        bool rightPressed = Input.GetKeyDown(KeyCode.RightArrow);
-
-        int col = -1;
-        if (wDown) col = 0;
-        else if (aDown) col = 1;
-        else if (sDown) col = 2;
-        else if (dDown) col = 3;
-        else if (eDown) col = 4;
-
-        int row = -1;
-        if (upDown) row = 0;
-        else if (leftDown) row = 1;
-        else if (downDown) row = 2;
-        else if (rightDown) row = 3;
-
-        bool colJustPressed = wPressed || aPressed || sPressed || dPressed || ePressed;
-        bool rowJustPressed = upPressed || leftPressed || downPressed || rightPressed;
-
-        if (row >= 0 && col >= 0 && (rowJustPressed || colJustPressed))
+        if (SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.GridCursor)
         {
-            SmashTile(row, col);
+            int maxRows = Ground.NumberOfRows > 0 ? Ground.NumberOfRows : 4;
+            int maxCols = Ground.NumberOfCols > 0 ? Ground.NumberOfCols : 4;
+
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            {
+                KeyboardCursorRow = Mathf.Max(0, KeyboardCursorRow - 1);
+            }
+            if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            {
+                KeyboardCursorRow = Mathf.Min(maxRows - 1, KeyboardCursorRow + 1);
+            }
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+            {
+                KeyboardCursorCol = Mathf.Max(0, KeyboardCursorCol - 1);
+            }
+            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+            {
+                KeyboardCursorCol = Mathf.Min(maxCols - 1, KeyboardCursorCol + 1);
+            }
+
+            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                if (ground != null)
+                {
+                    AimAssistController aimController = ground.GetComponent<AimAssistController>();
+                    if (aimController != null)
+                    {
+                        aimController.TriggerClickPunch();
+                    }
+                }
+                SmashTile(KeyboardCursorRow, KeyboardCursorCol);
+            }
+        }
+        else
+        {
+            bool wDown = Input.GetKey(KeyCode.W);
+            bool aDown = Input.GetKey(KeyCode.A);
+            bool sDown = Input.GetKey(KeyCode.S);
+            bool dDown = Input.GetKey(KeyCode.D);
+            bool eDown = Input.GetKey(KeyCode.E);
+
+            bool upDown = Input.GetKey(KeyCode.UpArrow);
+            bool leftDown = Input.GetKey(KeyCode.LeftArrow);
+            bool downDown = Input.GetKey(KeyCode.DownArrow);
+            bool rightDown = Input.GetKey(KeyCode.RightArrow);
+
+            bool wPressed = Input.GetKeyDown(KeyCode.W);
+            bool aPressed = Input.GetKeyDown(KeyCode.A);
+            bool sPressed = Input.GetKeyDown(KeyCode.S);
+            bool dPressed = Input.GetKeyDown(KeyCode.D);
+            bool ePressed = Input.GetKeyDown(KeyCode.E);
+
+            bool upPressed = Input.GetKeyDown(KeyCode.UpArrow);
+            bool leftPressed = Input.GetKeyDown(KeyCode.LeftArrow);
+            bool downPressed = Input.GetKeyDown(KeyCode.DownArrow);
+            bool rightPressed = Input.GetKeyDown(KeyCode.RightArrow);
+
+            int col = -1;
+            if (wDown) col = 0;
+            else if (aDown) col = 1;
+            else if (sDown) col = 2;
+            else if (dDown) col = 3;
+            else if (eDown) col = 4;
+
+            int row = -1;
+            if (upDown) row = 0;
+            else if (leftDown) row = 1;
+            else if (downDown) row = 2;
+            else if (rightDown) row = 3;
+
+            bool colJustPressed = wPressed || aPressed || sPressed || dPressed || ePressed;
+            bool rowJustPressed = upPressed || leftPressed || downPressed || rightPressed;
+
+            if (row >= 0 && col >= 0 && (rowJustPressed || colJustPressed))
+            {
+                SmashTile(row, col);
+            }
         }
     }
 
@@ -200,7 +243,9 @@ public class GameManager : MonoBehaviour
 
     private void CheckForMisclick()
     {
-        if (SettingsManager.Instance != null && SettingsManager.Instance.IsAimAssistEnabled)
+        if (SettingsManager.Instance != null &&
+            (SettingsManager.Instance.IsAimAssistEnabled ||
+             (SettingsManager.Instance.IsNoMouseGameplayEnabled && SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.GridCursor)))
         {
             return;
         }

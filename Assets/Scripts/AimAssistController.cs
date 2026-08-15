@@ -80,11 +80,16 @@ public class AimAssistController : MonoBehaviour
 
     private void Update()
     {
-        bool isEnabled = SettingsManager.Instance != null &&
-                         SettingsManager.Instance.IsAimAssistEnabled &&
-                         !GameManager.isGameFinished;
+        bool isAimAssist = SettingsManager.Instance != null &&
+                           SettingsManager.Instance.IsAimAssistEnabled &&
+                           !GameManager.isGameFinished;
 
-        if (!isEnabled)
+        bool isKeyboardCursor = SettingsManager.Instance != null &&
+                                SettingsManager.Instance.IsNoMouseGameplayEnabled &&
+                                SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.GridCursor &&
+                                !GameManager.isGameFinished;
+
+        if (!isAimAssist && !isKeyboardCursor)
         {
             if (aimBoxObj != null && aimBoxObj.activeSelf)
             {
@@ -96,8 +101,24 @@ public class AimAssistController : MonoBehaviour
 
         if (Camera.main == null || groundScript == null) return;
 
-        Vector2 mouseWorldPos = GetMouseWorldOnTilePlane();
-        bool hasTile = groundScript.GetTileAtWorldPosition(mouseWorldPos, out int row, out int col);
+        int row = -1;
+        int col = -1;
+        bool hasTile = false;
+
+        if (isKeyboardCursor)
+        {
+            if (GameManager.Instance != null)
+            {
+                row = GameManager.Instance.KeyboardCursorRow;
+                col = GameManager.Instance.KeyboardCursorCol;
+                hasTile = row >= 0 && col >= 0;
+            }
+        }
+        else if (isAimAssist)
+        {
+            Vector2 mouseWorldPos = GetMouseWorldOnTilePlane();
+            hasTile = groundScript.GetTileAtWorldPosition(mouseWorldPos, out row, out col);
+        }
 
         if (hasTile)
         {
@@ -142,7 +163,7 @@ public class AimAssistController : MonoBehaviour
                 lineRenderer.endColor = c;
             }
 
-            if (Input.GetMouseButtonDown(0))
+            if (isAimAssist && Input.GetMouseButtonDown(0))
             {
                 TriggerClickPunch();
                 groundScript.SmashTileAt(currentTargetRow, currentTargetCol);
@@ -158,7 +179,7 @@ public class AimAssistController : MonoBehaviour
         }
     }
 
-    private void TriggerClickPunch()
+    public void TriggerClickPunch()
     {
         if (punchCoroutine != null)
         {

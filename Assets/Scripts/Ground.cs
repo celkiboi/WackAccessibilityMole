@@ -221,7 +221,13 @@ public class Ground : MonoBehaviour
 
     public void UpdateKeyHintVisibility()
     {
-        bool showHeaders = SettingsManager.Instance != null && SettingsManager.Instance.IsNoMouseGameplayEnabled;
+        bool isMatrixMode = SettingsManager.Instance == null || 
+                            SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.MatrixCombo;
+
+        bool showHeaders = SettingsManager.Instance != null && 
+                           SettingsManager.Instance.IsNoMouseGameplayEnabled && 
+                           isMatrixMode;
+
         if (keyHintHeaderObjects != null)
         {
             foreach (GameObject headerObj in keyHintHeaderObjects)
@@ -235,6 +241,7 @@ public class Ground : MonoBehaviour
 
         bool showTileCombosSetting = SettingsManager.Instance != null && 
                                      SettingsManager.Instance.IsNoMouseGameplayEnabled && 
+                                     isMatrixMode && 
                                      SettingsManager.Instance.IsShowMoleKeyCombosEnabled;
 
         if (keyHintTileObjects != null && groundTiles != null)

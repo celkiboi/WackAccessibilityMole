@@ -9,6 +9,12 @@ public enum ColorblindMode
     Tritanopia = 3     // Blue/Yellow-Blind
 }
 
+public enum KeyboardControlMode
+{
+    MatrixCombo = 0,   // Key Combos (Column Key + Row Key)
+    GridCursor = 1     // Grid Cursor Navigation (Arrow Keys / WASD move highlight, Space/Enter smashes)
+}
+
 public class SettingsManager : MonoBehaviour
 {
     public static SettingsManager Instance { get; private set; }
@@ -19,6 +25,7 @@ public class SettingsManager : MonoBehaviour
     private const string COLORBLIND_MODE_KEY = "Accessibility_ColorblindMode";
     private const string COLORBLIND_INTENSITY_KEY = "Accessibility_ColorblindIntensity";
     private const string NO_MOUSE_GAMEPLAY_KEY = "Accessibility_NoMouseGameplay";
+    private const string KEYBOARD_CONTROL_MODE_KEY = "Accessibility_KeyboardControlMode";
     private const string SHOW_MOLE_KEY_COMBOS_KEY = "Accessibility_ShowMoleKeyCombos";
     private const string SPAWN_AUDIO_CUES_KEY = "Accessibility_SpawnAudioCues";
     private const string AIM_ASSIST_KEY = "Accessibility_AimAssist";
@@ -37,6 +44,8 @@ public class SettingsManager : MonoBehaviour
     [SerializeField]
     private bool defaultNoMouseGameplay = false;
     [SerializeField]
+    private KeyboardControlMode defaultKeyboardControlMode = KeyboardControlMode.MatrixCombo;
+    [SerializeField]
     private bool defaultShowMoleKeyCombos = false;
     [SerializeField]
     private bool defaultSpawnAudioCues = false;
@@ -49,6 +58,7 @@ public class SettingsManager : MonoBehaviour
     public ColorblindMode CurrentColorblindMode { get; private set; }
     public float ColorblindIntensity { get; private set; }
     public bool IsNoMouseGameplayEnabled { get; private set; }
+    public KeyboardControlMode CurrentKeyboardControlMode { get; private set; }
     public bool IsShowMoleKeyCombosEnabled { get; private set; }
     public bool IsSpawnAudioCuesEnabled { get; private set; }
     public bool IsAimAssistEnabled { get; private set; }
@@ -79,6 +89,9 @@ public class SettingsManager : MonoBehaviour
         ColorblindIntensity = PlayerPrefs.GetFloat(COLORBLIND_INTENSITY_KEY, defaultColorblindIntensity);
         IsNoMouseGameplayEnabled = PlayerPrefs.GetInt(NO_MOUSE_GAMEPLAY_KEY, defaultNoMouseGameplay ? 1 : 0) == 1;
         
+        int kbModeInt = PlayerPrefs.GetInt(KEYBOARD_CONTROL_MODE_KEY, (int)defaultKeyboardControlMode);
+        CurrentKeyboardControlMode = Enum.IsDefined(typeof(KeyboardControlMode), kbModeInt) ? (KeyboardControlMode)kbModeInt : KeyboardControlMode.MatrixCombo;
+
         IsShowMoleKeyCombosEnabled = PlayerPrefs.GetInt(SHOW_MOLE_KEY_COMBOS_KEY, defaultShowMoleKeyCombos ? 1 : 0) == 1;
         if (!IsNoMouseGameplayEnabled)
         {
@@ -116,6 +129,20 @@ public class SettingsManager : MonoBehaviour
         PlayerPrefs.SetInt(NO_MOUSE_GAMEPLAY_KEY, enabled ? 1 : 0);
         PlayerPrefs.Save();
         OnSettingsChanged?.Invoke();
+    }
+
+    public void SetKeyboardControlMode(KeyboardControlMode mode)
+    {
+        CurrentKeyboardControlMode = mode;
+        PlayerPrefs.SetInt(KEYBOARD_CONTROL_MODE_KEY, (int)mode);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void CycleKeyboardControlMode()
+    {
+        int nextMode = ((int)CurrentKeyboardControlMode + 1) % Enum.GetValues(typeof(KeyboardControlMode)).Length;
+        SetKeyboardControlMode((KeyboardControlMode)nextMode);
     }
 
     public void SetShowMoleKeyCombosEnabled(bool enabled)
@@ -204,6 +231,7 @@ public class SettingsManager : MonoBehaviour
         SetColorblindMode(defaultColorblindMode);
         SetColorblindIntensity(defaultColorblindIntensity);
         SetNoMouseGameplayEnabled(defaultNoMouseGameplay);
+        SetKeyboardControlMode(defaultKeyboardControlMode);
         SetShowMoleKeyCombosEnabled(defaultShowMoleKeyCombos);
         SetSpawnAudioCuesEnabled(defaultSpawnAudioCues);
         SetAimAssistEnabled(defaultAimAssist);
