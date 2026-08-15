@@ -34,6 +34,10 @@ public class SettingsUIController : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI colorblindModeText;
 
+    [Header("Score Repository Settings")]
+    [SerializeField]
+    private Button resetScoresButton;
+
     private void OnEnable()
     {
         InitializeUI();
@@ -111,6 +115,12 @@ public class SettingsUIController : MonoBehaviour
         {
             keyboardModeCycleButton.onClick.RemoveAllListeners();
             keyboardModeCycleButton.onClick.AddListener(OnKeyboardModeCycleClicked);
+        }
+
+        if (resetScoresButton != null)
+        {
+            resetScoresButton.onClick.RemoveAllListeners();
+            resetScoresButton.onClick.AddListener(OnResetScoresClicked);
         }
 
         UpdateColorblindUI();
@@ -278,6 +288,11 @@ public class SettingsUIController : MonoBehaviour
                     break;
             }
         }
+    }
+
+    public void OnResetScoresClicked()
+    {
+        ScoreRepository.ClearAllScores();
     }
 
     public void ResetDefaults()

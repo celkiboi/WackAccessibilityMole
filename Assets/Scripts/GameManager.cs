@@ -18,6 +18,8 @@ public class GameManager : MonoBehaviour
     [Header("Score & Combo Settings")]
     int score = 0;
     int comboMultiplier = 1;
+    int maxComboAchieved = 1;
+    int totalEnemiesHit = 0;
 
     [Header("Spawn Interval Pacing")]
     [SerializeField]
@@ -113,6 +115,8 @@ public class GameManager : MonoBehaviour
         currentHealth = maxHealth;
         score = 0;
         comboMultiplier = 1;
+        maxComboAchieved = 1;
+        totalEnemiesHit = 0;
         totalEnemiesSpawned = 0;
         currentSpawnInterval = initialTimeBetweenEnemies;
         currentEnemyLifetime = initialEnemyLifetime;
@@ -549,7 +553,9 @@ public class GameManager : MonoBehaviour
         if (isGameFinished) return;
 
         score += enemy.ScoreValue * comboMultiplier;
+        totalEnemiesHit++;
         comboMultiplier++;
+        maxComboAchieved = Mathf.Max(maxComboAchieved, comboMultiplier);
         UpdateUI();
         TriggerScoreGainFlash();
 
@@ -764,10 +770,13 @@ public class GameManager : MonoBehaviour
         isGameFinished = true;
         Time.timeScale = 0f;
 
+        ScoreRepository.SaveScoreLog(score, maxComboAchieved, totalEnemiesHit, totalEnemiesSpawned);
+        int highScore = ScoreRepository.GetHighScore();
+
         if (countdownText != null)
         {
             countdownText.gameObject.SetActive(true);
-            countdownText.text = $"GAME OVER\nFinal Score: {score:N0}";
+            countdownText.text = $"GAME OVER\nFinal Score: {score:N0}\nHigh Score: {highScore:N0}";
         }
 
         if (playAgainButton != null)
