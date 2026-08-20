@@ -12,6 +12,26 @@ public class MainMenuManager : MonoBehaviour
     private GameObject mainPanel;
     [SerializeField]
     private GameObject settingsPanel;
+    [SerializeField]
+    private GameObject scoresPanel;
+
+    private void Awake()
+    {
+        if (mainPanel != null)
+        {
+            mainPanel.SetActive(true);
+        }
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+
+        if (scoresPanel != null)
+        {
+            scoresPanel.SetActive(false);
+        }
+    }
 
     private void Start()
     {
@@ -23,6 +43,11 @@ public class MainMenuManager : MonoBehaviour
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
+        }
+
+        if (scoresPanel != null)
+        {
+            scoresPanel.SetActive(false);
         }
     }
 
@@ -47,6 +72,11 @@ public class MainMenuManager : MonoBehaviour
         {
             mainPanel.SetActive(false);
         }
+
+        if (scoresPanel != null)
+        {
+            scoresPanel.SetActive(false);
+        }
     }
 
     public void CloseSettings()
@@ -54,6 +84,46 @@ public class MainMenuManager : MonoBehaviour
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
+        }
+
+        if (mainPanel != null)
+        {
+            mainPanel.SetActive(true);
+        }
+    }
+
+    public void OpenScores()
+    {
+        if (scoresPanel != null)
+        {
+            scoresPanel.SetActive(true);
+            ScoreUIController controller = scoresPanel.GetComponent<ScoreUIController>();
+            if (controller != null)
+            {
+                controller.RefreshUI();
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Scores Panel is not assigned in the MainMenuManager Inspector.");
+        }
+
+        if (mainPanel != null)
+        {
+            mainPanel.SetActive(false);
+        }
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+    }
+
+    public void CloseScores()
+    {
+        if (scoresPanel != null)
+        {
+            scoresPanel.SetActive(false);
         }
 
         if (mainPanel != null)

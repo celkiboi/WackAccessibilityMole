@@ -293,6 +293,11 @@ public class SettingsUIController : MonoBehaviour
     public void OnResetScoresClicked()
     {
         ScoreRepository.ClearAllScores();
+        ScoreUIController scoreUI = FindFirstObjectByType<ScoreUIController>();
+        if (scoreUI != null)
+        {
+            scoreUI.RefreshUI();
+        }
     }
 
     public void ResetDefaults()
