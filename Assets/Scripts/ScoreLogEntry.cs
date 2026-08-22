@@ -14,6 +14,7 @@ public struct AccessibilitySettingsSnapshot
     public bool isShowMoleKeyCombosEnabled;
     public bool isSpawnAudioCuesEnabled;
     public bool isAimAssistEnabled;
+    public bool isEyeTrackingEnabled;
 
     public static AccessibilitySettingsSnapshot CaptureCurrent()
     {
@@ -30,6 +31,7 @@ public struct AccessibilitySettingsSnapshot
             snapshot.isShowMoleKeyCombosEnabled = SettingsManager.Instance.IsShowMoleKeyCombosEnabled;
             snapshot.isSpawnAudioCuesEnabled = SettingsManager.Instance.IsSpawnAudioCuesEnabled;
             snapshot.isAimAssistEnabled = SettingsManager.Instance.IsAimAssistEnabled;
+            snapshot.isEyeTrackingEnabled = SettingsManager.Instance.IsEyeTrackingEnabled;
         }
         return snapshot;
     }

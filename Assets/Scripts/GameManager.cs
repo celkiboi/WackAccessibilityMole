@@ -83,11 +83,15 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         isGameFinished = false;
-        Time.timeScale = SettingsManager.Instance != null ? SettingsManager.Instance.GameSpeedMultiplier : 1f;
+        hasCountdownFinished = false;
 
-        if (SettingsManager.Instance != null)
+        float speed = SettingsManager.Instance != null ? SettingsManager.Instance.GameSpeedMultiplier : 1f;
+        Time.timeScale = speed > 0.05f ? speed : 1f;
+
+        if (ground == null)
         {
-            SettingsManager.Instance.EnsureCameraEffect();
+            Ground g = FindFirstObjectByType<Ground>();
+            if (g != null) ground = g.gameObject;
         }
 
         if (playAgainButton != null)
@@ -137,7 +141,7 @@ public class GameManager : MonoBehaviour
                 }
             }
 
-            if (SettingsManager.Instance != null && SettingsManager.Instance.IsNoMouseGameplayEnabled)
+            if (SettingsManager.Instance != null && SettingsManager.Instance.IsNoMouseGameplayEnabled && !SettingsManager.Instance.IsEyeTrackingEnabled)
             {
                 HandleKeyboardInput();
             }
@@ -249,6 +253,7 @@ public class GameManager : MonoBehaviour
     {
         if (SettingsManager.Instance != null &&
             (SettingsManager.Instance.IsAimAssistEnabled ||
+             SettingsManager.Instance.IsEyeTrackingEnabled ||
              (SettingsManager.Instance.IsNoMouseGameplayEnabled && SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.GridCursor)))
         {
             return;
@@ -534,11 +539,11 @@ public class GameManager : MonoBehaviour
             countdownText.gameObject.SetActive(true);
 
         if (countdownText != null) countdownText.text = "3";
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSecondsRealtime(1f);
         if (countdownText != null) countdownText.text = "2";
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSecondsRealtime(1f);
         if (countdownText != null) countdownText.text = "1";
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSecondsRealtime(1f);
 
         if (countdownText != null)
             countdownText.gameObject.SetActive(false);
@@ -792,6 +797,7 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
+        SentisEyeTracker.ShutdownCamera();
         Time.timeScale = SettingsManager.Instance != null ? SettingsManager.Instance.GameSpeedMultiplier : 1f;
         isGameFinished = false;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -799,6 +805,7 @@ public class GameManager : MonoBehaviour
 
     public void GoToMainMenu()
     {
+        SentisEyeTracker.ShutdownCamera();
         Time.timeScale = 1f;
         isGameFinished = false;
         SceneManager.LoadScene(mainMenuSceneName);

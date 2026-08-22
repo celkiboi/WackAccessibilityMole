@@ -99,8 +99,9 @@ public class ToughEnemyBehaviour : MonoBehaviour, IEnemyBehaviour
             }
             else
             {
-                // Intermediate hit: lower in stages
-                float hiddenFraction = (float)(clicksRequired - currentClicks) / clicksRequired;
+                // Intermediate hit: lower in scaled stages (last hit reaches ~0.35f depth)
+                float stageRatio = (float)(clicksRequired - currentClicks) / (clicksRequired - 1);
+                float hiddenFraction = stageRatio * 0.35f;
                 if (riseAnim != null)
                 {
                     riseAnim.LowerToStage(hiddenFraction);

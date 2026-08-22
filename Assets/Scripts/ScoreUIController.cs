@@ -261,6 +261,8 @@ public class ScoreUIController : MonoBehaviour
             badges.Add($"Speed {snap.gameSpeedMultiplier:F1}x");
         if (snap.isAimAssistEnabled)
             badges.Add("Aim Assist");
+        if (snap.isEyeTrackingEnabled)
+            badges.Add("Eye Gaze & Blink");
         if (snap.isNoMouseGameplayEnabled)
             badges.Add($"No-Mouse ({snap.keyboardControlMode})");
         if (snap.colorblindMode != "Off" && !string.IsNullOrEmpty(snap.colorblindMode))

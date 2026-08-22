@@ -17,6 +17,8 @@ public class SettingsUIController : MonoBehaviour
     private Toggle spawnAudioCuesToggle;
     [SerializeField]
     private Toggle aimAssistToggle;
+    [SerializeField]
+    private Toggle eyeTrackingToggle;
 
     [Header("Game Speed Settings")]
     [SerializeField]
@@ -38,14 +40,69 @@ public class SettingsUIController : MonoBehaviour
     [SerializeField]
     private Button resetScoresButton;
 
+    [Header("Eye Calibration Settings")]
+    [SerializeField]
+    private Button calibrateEyeTrackingButton;
+    [SerializeField]
+    private Button testEyeCalibrationButton;
+    [SerializeField]
+    private Button resetEyeCalibrationButton;
+    [SerializeField]
+    private TextMeshProUGUI eyeCalibrationStatusText;
+    [SerializeField]
+    private EyeCalibrationController calibrationController;
+
     private void OnEnable()
     {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.OnSettingsChanged += SyncToggleStates;
+        }
         InitializeUI();
+    }
+
+    private void OnDisable()
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.OnSettingsChanged -= SyncToggleStates;
+        }
     }
 
     private void Start()
     {
         InitializeUI();
+    }
+
+    public void SyncToggleStates()
+    {
+        if (SettingsManager.Instance == null) return;
+
+        if (screenShakeToggle != null) screenShakeToggle.SetIsOnWithoutNotify(SettingsManager.Instance.IsScreenShakeEnabled);
+        if (screenFlashesToggle != null) screenFlashesToggle.SetIsOnWithoutNotify(SettingsManager.Instance.IsScreenFlashesEnabled);
+        if (noMouseGameplayToggle != null) noMouseGameplayToggle.SetIsOnWithoutNotify(SettingsManager.Instance.IsNoMouseGameplayEnabled);
+        if (spawnAudioCuesToggle != null) spawnAudioCuesToggle.SetIsOnWithoutNotify(SettingsManager.Instance.IsSpawnAudioCuesEnabled);
+        if (aimAssistToggle != null) aimAssistToggle.SetIsOnWithoutNotify(SettingsManager.Instance.IsAimAssistEnabled);
+        if (eyeTrackingToggle != null) eyeTrackingToggle.SetIsOnWithoutNotify(SettingsManager.Instance.IsEyeTrackingEnabled);
+
+        bool isMatrixMode = SettingsManager.Instance.CurrentKeyboardControlMode == KeyboardControlMode.MatrixCombo;
+        bool canEnableKeyCombos = SettingsManager.Instance.IsNoMouseGameplayEnabled && isMatrixMode;
+
+        if (showMoleKeyCombosToggle != null)
+        {
+            showMoleKeyCombosToggle.interactable = canEnableKeyCombos;
+            showMoleKeyCombosToggle.SetIsOnWithoutNotify(canEnableKeyCombos && SettingsManager.Instance.IsShowMoleKeyCombosEnabled);
+            UpdateMoleKeyComboToggleVisuals(canEnableKeyCombos);
+        }
+
+        if (keyboardModeCycleButton != null)
+        {
+            keyboardModeCycleButton.interactable = SettingsManager.Instance.IsNoMouseGameplayEnabled;
+        }
+
+        UpdateKeyboardModeUI();
+        UpdateColorblindUI();
+        UpdateEyeCalibrationUI();
     }
 
     public void InitializeUI()
@@ -98,6 +155,13 @@ public class SettingsUIController : MonoBehaviour
             aimAssistToggle.onValueChanged.AddListener(OnAimAssistToggleChanged);
         }
 
+        if (eyeTrackingToggle != null)
+        {
+            eyeTrackingToggle.onValueChanged.RemoveAllListeners();
+            eyeTrackingToggle.isOn = SettingsManager.Instance.IsEyeTrackingEnabled;
+            eyeTrackingToggle.onValueChanged.AddListener(OnEyeTrackingToggleChanged);
+        }
+
         if (gameSpeedSlider != null)
         {
             gameSpeedSlider.onValueChanged.RemoveAllListeners();
@@ -123,8 +187,33 @@ public class SettingsUIController : MonoBehaviour
             resetScoresButton.onClick.AddListener(OnResetScoresClicked);
         }
 
+        if (calibrateEyeTrackingButton != null)
+        {
+            calibrateEyeTrackingButton.onClick.RemoveAllListeners();
+            calibrateEyeTrackingButton.onClick.AddListener(OnCalibrateEyeTrackingClicked);
+        }
+
+        if (testEyeCalibrationButton != null)
+        {
+            testEyeCalibrationButton.onClick.RemoveAllListeners();
+            testEyeCalibrationButton.onClick.AddListener(OnTestEyeCalibrationClicked);
+        }
+
+        if (resetEyeCalibrationButton != null)
+        {
+            resetEyeCalibrationButton.onClick.RemoveAllListeners();
+            resetEyeCalibrationButton.onClick.AddListener(OnResetEyeCalibrationClicked);
+        }
+
+        if (calibrationController != null)
+        {
+            calibrationController.OnCalibrationCompleted -= UpdateEyeCalibrationUI;
+            calibrationController.OnCalibrationCompleted += UpdateEyeCalibrationUI;
+        }
+
         UpdateColorblindUI();
         UpdateKeyboardModeUI();
+        UpdateEyeCalibrationUI();
     }
 
     private void OnScreenShakeToggleChanged(bool enabled)
@@ -193,6 +282,14 @@ public class SettingsUIController : MonoBehaviour
         if (SettingsManager.Instance != null)
         {
             SettingsManager.Instance.SetAimAssistEnabled(enabled);
+        }
+    }
+
+    private void OnEyeTrackingToggleChanged(bool enabled)
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetEyeTrackingEnabled(enabled);
         }
     }
 
@@ -300,12 +397,82 @@ public class SettingsUIController : MonoBehaviour
         }
     }
 
+    public void OnCalibrateEyeTrackingClicked()
+    {
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.IsEyeTrackingEnabled)
+        {
+            SettingsManager.Instance.SetEyeTrackingEnabled(true);
+        }
+
+        if (calibrationController == null)
+        {
+            calibrationController = FindFirstObjectByType<EyeCalibrationController>();
+            if (calibrationController == null)
+            {
+                calibrationController = gameObject.AddComponent<EyeCalibrationController>();
+            }
+        }
+
+        if (calibrationController != null)
+        {
+            calibrationController.OnCalibrationCompleted -= UpdateEyeCalibrationUI;
+            calibrationController.OnCalibrationCompleted += UpdateEyeCalibrationUI;
+            calibrationController.StartCalibration();
+        }
+    }
+
+    public void OnTestEyeCalibrationClicked()
+    {
+        if (SettingsManager.Instance != null && !SettingsManager.Instance.IsEyeTrackingEnabled)
+        {
+            SettingsManager.Instance.SetEyeTrackingEnabled(true);
+        }
+
+        if (calibrationController == null)
+        {
+            calibrationController = FindFirstObjectByType<EyeCalibrationController>();
+            if (calibrationController == null)
+            {
+                calibrationController = gameObject.AddComponent<EyeCalibrationController>();
+            }
+        }
+
+        if (calibrationController != null)
+        {
+            calibrationController.StartFreeTestMode();
+        }
+    }
+
+    public void OnResetEyeCalibrationClicked()
+    {
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.ResetEyeCalibration();
+            UpdateEyeCalibrationUI();
+        }
+    }
+
+    public void UpdateEyeCalibrationUI()
+    {
+        if (SettingsManager.Instance == null || eyeCalibrationStatusText == null) return;
+
+        var calib = SettingsManager.Instance.CurrentEyeCalibration;
+        if (calib.isCalibrated)
+        {
+            eyeCalibrationStatusText.text = $"Status: <color=#00FF88>Calibrated</color> ({calib.calibrationDate})";
+        }
+        else
+        {
+            eyeCalibrationStatusText.text = "Status: <color=#AAAAAA>Not Calibrated (Default Bounds)</color>";
+        }
+    }
+
     public void ResetDefaults()
     {
         if (SettingsManager.Instance != null)
         {
             SettingsManager.Instance.ResetToDefaults();
-            InitializeUI();
         }
+        InitializeUI();
     }
 }

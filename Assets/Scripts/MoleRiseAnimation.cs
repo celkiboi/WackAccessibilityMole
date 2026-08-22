@@ -17,7 +17,9 @@ public class MoleRiseAnimation : MonoBehaviour
     [Range(0.1f, 0.4f)]
     private float retractFraction = 0.25f;
 
+    public event System.Action OnRetracted;
     private Coroutine animateCoroutine;
+    private int currentSortingOrder = -1;
 
     private void Awake()
     {
@@ -26,14 +28,23 @@ public class MoleRiseAnimation : MonoBehaviour
 
     public void SetupMasking(int sortingOrder = -1)
     {
+        if (sortingOrder >= 0)
+        {
+            currentSortingOrder = sortingOrder;
+        }
+
         SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>(true);
         foreach (SpriteRenderer sr in renderers)
         {
             sr.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
-            if (sortingOrder >= 0)
+            if (currentSortingOrder >= 0)
             {
-                sr.sortingOrder = sortingOrder;
+                sr.sortingOrder = currentSortingOrder;
             }
+            sr.enabled = true;
+            Color c = sr.color;
+            c.a = 1.0f;
+            sr.color = c;
         }
     }
 
@@ -85,6 +96,7 @@ public class MoleRiseAnimation : MonoBehaviour
         }
 
         transform.localPosition = hiddenPos;
+        OnRetracted?.Invoke();
     }
 
     private void OnDisable()
@@ -115,13 +127,13 @@ public class MoleRiseAnimation : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-            float smoothT = Mathf.SmoothStep(0f, 1f, t);
-            transform.localPosition = Vector3.Lerp(currentPos, hiddenPos, smoothT);
+            transform.localPosition = Vector3.Lerp(currentPos, hiddenPos, t);
             yield return null;
         }
 
         transform.localPosition = hiddenPos;
         onComplete?.Invoke();
+        OnRetracted?.Invoke();
     }
 
     public void LowerToStage(float hiddenFraction, float duration = 0.12f)

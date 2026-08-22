@@ -15,6 +15,27 @@ public enum KeyboardControlMode
     GridCursor = 1     // Grid Cursor Navigation (Arrow Keys / WASD move highlight, Space/Enter smashes)
 }
 
+[System.Serializable]
+public struct EyeCalibrationData
+{
+    public bool isCalibrated;
+    public float minX;
+    public float maxX;
+    public float minY;
+    public float maxY;
+    public string calibrationDate;
+
+    public static EyeCalibrationData Default => new EyeCalibrationData
+    {
+        isCalibrated = false,
+        minX = 0.25f,
+        maxX = 0.75f,
+        minY = 0.25f,
+        maxY = 0.75f,
+        calibrationDate = "None"
+    };
+}
+
 public class SettingsManager : MonoBehaviour
 {
     public static SettingsManager Instance { get; private set; }
@@ -29,6 +50,8 @@ public class SettingsManager : MonoBehaviour
     private const string SHOW_MOLE_KEY_COMBOS_KEY = "Accessibility_ShowMoleKeyCombos";
     private const string SPAWN_AUDIO_CUES_KEY = "Accessibility_SpawnAudioCues";
     private const string AIM_ASSIST_KEY = "Accessibility_AimAssist";
+    private const string EYE_TRACKING_KEY = "Accessibility_EyeTracking";
+    private const string EYE_CALIBRATION_KEY = "Accessibility_EyeCalibration";
 
     [Header("Default Settings")]
     [SerializeField]
@@ -51,6 +74,8 @@ public class SettingsManager : MonoBehaviour
     private bool defaultSpawnAudioCues = false;
     [SerializeField]
     private bool defaultAimAssist = false;
+    [SerializeField]
+    private bool defaultEyeTracking = false;
 
     public bool IsScreenShakeEnabled { get; private set; }
     public bool IsScreenFlashesEnabled { get; private set; }
@@ -62,6 +87,8 @@ public class SettingsManager : MonoBehaviour
     public bool IsShowMoleKeyCombosEnabled { get; private set; }
     public bool IsSpawnAudioCuesEnabled { get; private set; }
     public bool IsAimAssistEnabled { get; private set; }
+    public bool IsEyeTrackingEnabled { get; private set; }
+    public EyeCalibrationData CurrentEyeCalibration { get; private set; }
 
     public event Action OnSettingsChanged;
 
@@ -100,6 +127,74 @@ public class SettingsManager : MonoBehaviour
 
         IsSpawnAudioCuesEnabled = PlayerPrefs.GetInt(SPAWN_AUDIO_CUES_KEY, defaultSpawnAudioCues ? 1 : 0) == 1;
         IsAimAssistEnabled = PlayerPrefs.GetInt(AIM_ASSIST_KEY, defaultAimAssist ? 1 : 0) == 1;
+        IsEyeTrackingEnabled = PlayerPrefs.GetInt(EYE_TRACKING_KEY, defaultEyeTracking ? 1 : 0) == 1;
+
+        string calibJson = PlayerPrefs.GetString(EYE_CALIBRATION_KEY, "");
+        if (!string.IsNullOrEmpty(calibJson))
+        {
+            try
+            {
+                CurrentEyeCalibration = JsonUtility.FromJson<EyeCalibrationData>(calibJson);
+            }
+            catch
+            {
+                CurrentEyeCalibration = EyeCalibrationData.Default;
+            }
+        }
+        else
+        {
+            CurrentEyeCalibration = EyeCalibrationData.Default;
+        }
+    }
+
+    public void SaveEyeCalibration(EyeCalibrationData data)
+    {
+        CurrentEyeCalibration = data;
+        string json = JsonUtility.ToJson(data);
+        PlayerPrefs.SetString(EYE_CALIBRATION_KEY, json);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void ResetEyeCalibration()
+    {
+        CurrentEyeCalibration = EyeCalibrationData.Default;
+        PlayerPrefs.DeleteKey(EYE_CALIBRATION_KEY);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public Vector2 ApplyEyeCalibration(Vector2 rawGaze)
+    {
+        // Default ergonomic active head zone: [0.30, 0.70] in X, [0.30, 0.70] in Y
+        float minX = 0.30f;
+        float maxX = 0.70f;
+        float minY = 0.30f;
+        float maxY = 0.70f;
+
+        if (CurrentEyeCalibration.isCalibrated)
+        {
+            minX = CurrentEyeCalibration.minX;
+            maxX = CurrentEyeCalibration.maxX;
+            minY = CurrentEyeCalibration.minY;
+            maxY = CurrentEyeCalibration.maxY;
+
+            if (Mathf.Abs(maxX - minX) < 0.04f)
+            {
+                minX = 0.30f;
+                maxX = 0.70f;
+            }
+            if (Mathf.Abs(maxY - minY) < 0.04f)
+            {
+                minY = 0.30f;
+                maxY = 0.70f;
+            }
+        }
+
+        float calibratedX = Mathf.Clamp01(Mathf.InverseLerp(minX, maxX, rawGaze.x));
+        float calibratedY = Mathf.Clamp01(Mathf.InverseLerp(minY, maxY, rawGaze.y));
+
+        return new Vector2(calibratedX, calibratedY);
     }
 
     public void SetScreenShakeEnabled(bool enabled)
@@ -121,7 +216,12 @@ public class SettingsManager : MonoBehaviour
     public void SetNoMouseGameplayEnabled(bool enabled)
     {
         IsNoMouseGameplayEnabled = enabled;
-        if (!enabled)
+        if (enabled)
+        {
+            IsEyeTrackingEnabled = false;
+            PlayerPrefs.SetInt(EYE_TRACKING_KEY, 0);
+        }
+        else
         {
             IsShowMoleKeyCombosEnabled = false;
             PlayerPrefs.SetInt(SHOW_MOLE_KEY_COMBOS_KEY, 0);
@@ -168,7 +268,37 @@ public class SettingsManager : MonoBehaviour
     public void SetAimAssistEnabled(bool enabled)
     {
         IsAimAssistEnabled = enabled;
+        if (enabled)
+        {
+            IsEyeTrackingEnabled = false;
+            PlayerPrefs.SetInt(EYE_TRACKING_KEY, 0);
+            SentisEyeTracker.Shutdown();
+        }
         PlayerPrefs.SetInt(AIM_ASSIST_KEY, enabled ? 1 : 0);
+        PlayerPrefs.Save();
+        OnSettingsChanged?.Invoke();
+    }
+
+    public void SetEyeTrackingEnabled(bool enabled)
+    {
+        IsEyeTrackingEnabled = enabled;
+        if (enabled)
+        {
+            IsAimAssistEnabled = false;
+            PlayerPrefs.SetInt(AIM_ASSIST_KEY, 0);
+
+            IsNoMouseGameplayEnabled = false;
+            IsShowMoleKeyCombosEnabled = false;
+            PlayerPrefs.SetInt(NO_MOUSE_GAMEPLAY_KEY, 0);
+            PlayerPrefs.SetInt(SHOW_MOLE_KEY_COMBOS_KEY, 0);
+
+            SentisEyeTracker.EnsureInstance();
+        }
+        else
+        {
+            SentisEyeTracker.Shutdown();
+        }
+        PlayerPrefs.SetInt(EYE_TRACKING_KEY, enabled ? 1 : 0);
         PlayerPrefs.Save();
         OnSettingsChanged?.Invoke();
     }
@@ -235,5 +365,6 @@ public class SettingsManager : MonoBehaviour
         SetShowMoleKeyCombosEnabled(defaultShowMoleKeyCombos);
         SetSpawnAudioCuesEnabled(defaultSpawnAudioCues);
         SetAimAssistEnabled(defaultAimAssist);
+        SetEyeTrackingEnabled(defaultEyeTracking);
     }
 }

@@ -33,6 +33,7 @@ public class Ground : MonoBehaviour
     public static float TileHeight { get; private set; }
 
     public GameObject[] GroundTiles => groundTiles;
+    private TileHoleEffect[] tileHoleEffects;
 
     private readonly string[] rowKeys = new string[] { "↑", "←", "↓", "→" };
     private readonly string[] colKeys = new string[] { "W", "A", "S", "D", "E" };
@@ -41,17 +42,105 @@ public class Ground : MonoBehaviour
     {
         if (SettingsManager.Instance != null)
         {
-            SettingsManager.Instance.OnSettingsChanged += UpdateKeyHintVisibility;
+            SettingsManager.Instance.OnSettingsChanged += HandleSettingsChanged;
         }
-        UpdateKeyHintVisibility();
+        HandleSettingsChanged();
     }
 
     private void OnDisable()
     {
         if (SettingsManager.Instance != null)
         {
-            SettingsManager.Instance.OnSettingsChanged -= UpdateKeyHintVisibility;
+            SettingsManager.Instance.OnSettingsChanged -= HandleSettingsChanged;
         }
+    }
+
+    private void HandleSettingsChanged()
+    {
+        EnsureControllers();
+        UpdateKeyHintVisibility();
+    }
+
+    private static Sprite holeVisualSprite;
+    private static Sprite holeMaskSprite;
+
+    private static Sprite GetOrCreateHoleVisualSprite()
+    {
+        if (holeVisualSprite != null) return holeVisualSprite;
+
+        int size = 128;
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[size * size];
+        Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+        float radiusX = size * 0.45f;
+        float radiusY = size * 0.32f;
+
+        Color holeInnerColor = new Color(0.08f, 0.06f, 0.05f, 1f);
+        Color holeRimColor = new Color(0.18f, 0.14f, 0.10f, 1f);
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x - center.x) / radiusX;
+                float dy = (y - center.y) / radiusY;
+                float distSq = dx * dx + dy * dy;
+
+                if (distSq <= 1.0f)
+                {
+                    float t = Mathf.Sqrt(distSq);
+                    pixels[y * size + x] = Color.Lerp(holeInnerColor, holeRimColor, t * t);
+                }
+                else
+                {
+                    pixels[y * size + x] = Color.clear;
+                }
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+        holeVisualSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return holeVisualSprite;
+    }
+
+    private static Sprite GetOrCreateHoleMaskSprite()
+    {
+        if (holeMaskSprite != null) return holeMaskSprite;
+
+        int width = 128;
+        int height = 160;
+        Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[width * height];
+        Vector2 center = new Vector2(width * 0.5f, 64f);
+        float radiusX = width * 0.45f;
+        float radiusY = width * 0.32f;
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float dx = (x - center.x) / radiusX;
+                float dy = (y - center.y) / radiusY;
+
+                bool isInside = false;
+                if (dy >= 0f)
+                {
+                    isInside = Mathf.Abs(dx) <= 1.0f;
+                }
+                else
+                {
+                    isInside = (dx * dx + dy * dy) <= 1.0f;
+                }
+
+                pixels[y * width + x] = isInside ? Color.white : Color.clear;
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+        holeMaskSprite = Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 64f / height), 128f);
+        return holeMaskSprite;
     }
 
     void Start()
@@ -61,6 +150,9 @@ public class Ground : MonoBehaviour
 
         float tileHeight = totalHeight / totalRows;
         float tileWidth = totalWidth / totalCols;
+
+        NumberOfRows = totalRows;
+        NumberOfCols = totalCols;
 
         TileWidth = tileWidth;
         TileHeight = tileHeight;
@@ -89,17 +181,28 @@ public class Ground : MonoBehaviour
             if (tileSr != null)
             {
                 tileSr.sortingOrder = rowSortingOrder;
-
-                SpriteMask mask = groundTiles[i].GetComponent<SpriteMask>();
-                if (mask == null)
-                {
-                    mask = groundTiles[i].AddComponent<SpriteMask>();
-                }
-                mask.sprite = tileSr.sprite;
-                mask.isCustomRangeActive = true;
-                mask.backSortingOrder = rowSortingOrder;
-                mask.frontSortingOrder = rowSortingOrder + 5;
             }
+
+            // Hole Visual
+            GameObject holeObj = new GameObject("Hole_Visual");
+            holeObj.transform.SetParent(groundTiles[i].transform, false);
+            holeObj.transform.localPosition = new Vector3(0, -0.05f, -0.001f);
+            holeObj.transform.localScale = new Vector3(0.85f, 0.55f, 1f);
+
+            SpriteRenderer holeSr = holeObj.AddComponent<SpriteRenderer>();
+            holeSr.sprite = GetOrCreateHoleVisualSprite();
+            holeSr.sortingOrder = rowSortingOrder + 1;
+
+            GameObject maskObj = new GameObject("Hole_Mask");
+            maskObj.transform.SetParent(groundTiles[i].transform, false);
+            maskObj.transform.localPosition = new Vector3(0, -0.05f, -0.002f);
+            maskObj.transform.localScale = new Vector3(0.85f, 0.55f, 1f);
+
+            SpriteMask mask = maskObj.AddComponent<SpriteMask>();
+            mask.sprite = GetOrCreateHoleMaskSprite();
+            mask.isCustomRangeActive = true;
+            mask.backSortingOrder = rowSortingOrder + 1;
+            mask.frontSortingOrder = rowSortingOrder + 9;
 
             GameObject tileBadgeObj = new GameObject($"TileKeyCombo_{row}_{col}");
             tileBadgeObj.transform.SetParent(groundTiles[i].transform, false);
@@ -166,15 +269,38 @@ public class Ground : MonoBehaviour
         NumberOfCols = totalCols;
         NumberOfRows = totalRows;
 
-        EnsureAimAssistController();
+        EnsureControllers();
         UpdateKeyHintVisibility();
     }
 
-    private void EnsureAimAssistController()
+    private void EnsureControllers()
     {
-        if (GetComponent<AimAssistController>() == null)
+        bool isAimAssist = SettingsManager.Instance != null && SettingsManager.Instance.IsAimAssistEnabled;
+        if (isAimAssist)
         {
-            gameObject.AddComponent<AimAssistController>();
+            if (GetComponent<AimAssistController>() == null)
+            {
+                gameObject.AddComponent<AimAssistController>();
+            }
+        }
+        else
+        {
+            AimAssistController assist = GetComponent<AimAssistController>();
+            if (assist != null) Destroy(assist);
+        }
+
+        bool isEyeTracking = SettingsManager.Instance != null && SettingsManager.Instance.IsEyeTrackingEnabled;
+        if (isEyeTracking)
+        {
+            if (GetComponent<SentisEyeTracker>() == null)
+            {
+                gameObject.AddComponent<SentisEyeTracker>();
+            }
+        }
+        else
+        {
+            SentisEyeTracker tracker = GetComponent<SentisEyeTracker>();
+            if (tracker != null) Destroy(tracker);
         }
     }
 
@@ -320,10 +446,10 @@ public class Ground : MonoBehaviour
 
         lastSpawnTimes[chosenTileIndex] = Time.time;
         GameObject enemyObject = Instantiate(enemy, groundTiles[chosenTileIndex].transform);
-        enemyObject.transform.Translate(new Vector3(0, 0, -0.001f));
+        enemyObject.transform.localPosition = new Vector3(0, -1.0f, -0.003f);
 
         int tileRow = chosenTileIndex / totalCols;
-        int enemySortingOrder = tileRow * 10 + 1;
+        int enemySortingOrder = tileRow * 10 + 2;
 
         MoleRiseAnimation riseAnim = enemyObject.GetComponent<MoleRiseAnimation>();
         if (riseAnim == null)
